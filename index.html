@@ -1021,29 +1021,14 @@ const expandedSeasons = new Set(['S1']); // S1 open by default
 
 function openVideoModal(driveId, title, ep, color) {
   if (window.requireLoginToWatch && !window.requireLoginToWatch(driveId)) return;
-  _currentDriveId = driveId;
-  const modal = document.getElementById('video-modal');
-  const iframe = document.getElementById('video-modal-iframe');
-  const titleEl = document.getElementById('video-modal-title');
-  const epEl = document.getElementById('video-modal-ep');
-  const badge = document.getElementById('video-modal-badge');
-  // Set content
-  titleEl.textContent = title;
-  epEl.textContent = ep;
-  badge.textContent = ep;
-  badge.style.background = color + 'bb';
-  // Set iframe src with proper URL
-  const src = 'https://drive.google.com/file/d/' + driveId + '/preview?rm=minimal';
-  iframe.src = src;
-  // Show modal
-  modal.classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
+  // MKV files don't play properly in iframes — open directly in Google Drive
+  window.open('https://drive.google.com/file/d/' + driveId + '/view', '_blank');
 }
 
 function closeVideoModal() {
   const modal = document.getElementById('video-modal');
   const iframe = document.getElementById('video-modal-iframe');
-  iframe.src = ''; // stop video/audio
+  if (iframe) iframe.src = '';
   modal.classList.add('hidden');
   document.body.style.overflow = '';
 }
@@ -1063,14 +1048,9 @@ function makeVideoCard(v, i) {
       </button>
       <div class="p-4">
         <h3 class="font-bold text-sm text-white leading-snug line-clamp-2 group-hover:text-dora-blue transition">${v.title}</h3>
-        <div class="mt-2 flex items-center justify-between">
-          <p class="text-[11px] text-gray-500 flex items-center gap-2">
-            <i data-lucide="clock" class="w-3 h-3"></i> 22 min
-          </p>
-          <button onclick="event.stopPropagation();window.open('https://drive.google.com/file/d/${v.driveId}/view','_blank')" class="text-[10px] text-gray-600 hover:text-dora-blue transition flex items-center gap-1">
-            <i data-lucide="external-link" class="w-3 h-3"></i> Drive
-          </button>
-        </div>
+        <p class="text-[11px] text-gray-500 mt-2 flex items-center gap-2">
+          <i data-lucide="clock" class="w-3 h-3"></i> 22 min
+        </p>
       </div>
     </div>`;
 }
@@ -1289,10 +1269,6 @@ lucide.createIcons();
         <span id="video-modal-ep" class="hidden"></span>
       </div>
       <div class="flex items-center gap-2 shrink-0 ml-3">
-        <button id="drive-open-btn" onclick="openInDrive()" class="text-xs px-3 py-1.5 bg-dora-blue/20 hover:bg-dora-blue/40 text-dora-blue rounded-lg transition font-semibold flex items-center gap-1">
-          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
-          Drive-এ খুলুন
-        </button>
         <button onclick="closeVideoModal()" class="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-400 transition font-bold text-lg leading-none">✕</button>
       </div>
     </div>
@@ -1307,18 +1283,11 @@ lucide.createIcons();
         sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
       ></iframe>
     </div>
-    <div class="px-4 py-2 bg-dora-dark/90 rounded-b-2xl border-t border-white/5 flex items-center gap-2">
-      <span class="text-yellow-400 text-xs">💡</span>
-      <p class="text-[11px] text-gray-500">Sound কাজ না করলে <strong class="text-gray-400">"Drive-এ খুলুন"</strong> বাটন চাপুন। কিছু পুরনো ফাইলে সরাসরি Drive-এ ভালো চলে।</p>
-    </div>
   </div>
 </div>
 
 <script>
 let _currentDriveId = '';
-function openInDrive() {
-  if (_currentDriveId) window.open('https://drive.google.com/file/d/' + _currentDriveId + '/view', '_blank');
-}
 </script>
 
 <!-- ===== LOGIN MODAL ===== -->
