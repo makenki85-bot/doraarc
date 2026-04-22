@@ -1,0 +1,1507 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Doraemon Video Archive</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&amp;family=Fredoka+One&amp;display=swap" rel="stylesheet">
+  <script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        dora: { blue: '#2BA4E0', dark: '#0A1628', navy: '#0F2340', red: '#E8413C', yellow: '#FFD93D', white: '#F8FBFF' },
+      },
+      fontFamily: {
+        heading: ['Fredoka One', 'cursive'],
+        body: ['Nunito', 'sans-serif'],
+      }
+    }
+  }
+}
+</script>
+  <style>
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-12px)} }
+@keyframes doorGlow { 0%,100%{box-shadow:0 0 15px rgba(43,164,224,.3)} 50%{box-shadow:0 0 30px rgba(43,164,224,.6)} }
+@keyframes bellSwing { 0%,100%{transform:rotate(0)} 25%{transform:rotate(8deg)} 75%{transform:rotate(-8deg)} }
+@keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+@keyframes portalSpin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+.float-anim { animation: float 4s ease-in-out infinite; }
+.door-glow { animation: doorGlow 3s ease-in-out infinite; }
+.bell-swing { animation: bellSwing 2s ease-in-out infinite; }
+.slide-up { animation: slideUp .6s ease-out both; }
+.card-hover { transition: all .3s cubic-bezier(.4,0,.2,1); }
+.card-hover:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 20px 40px rgba(43,164,224,.25); }
+.nav-item { position:relative; overflow:hidden; }
+.nav-item::after { content:''; position:absolute; bottom:0; left:50%; width:0; height:3px; background:#E8413C; transition:all .3s; transform:translateX(-50%); border-radius:2px; }
+.nav-item:hover::after { width:80%; }
+.anywhere-door { background: linear-gradient(135deg, #E8413C 0%, #c0302b 100%); border-radius: 16px 16px 4px 4px; position:relative; }
+.anywhere-door::before { content:''; position:absolute; top:50%; left:50%; width:12px; height:12px; background:#FFD93D; border-radius:50%; transform:translate(30%,-50%); box-shadow:0 0 8px rgba(255,217,61,.5); }
+.pocket-bg { background: radial-gradient(ellipse at 50% 0%, rgba(43,164,224,.15) 0%, transparent 70%); }
+.search-glow:focus-within { box-shadow: 0 0 0 3px rgba(43,164,224,.4), 0 8px 30px rgba(43,164,224,.15); }
+.category-pill { transition: all .25s; }
+.category-pill:hover, .category-pill.active { background: #2BA4E0; color: white; transform: scale(1.05); }
+.thumb-placeholder { background: linear-gradient(135deg, #2BA4E0 0%, #0F2340 100%); }
+html { scroll-behavior: smooth; }
+::-webkit-scrollbar { width:8px; }
+::-webkit-scrollbar-track { background:#0A1628; }
+::-webkit-scrollbar-thumb { background:#2BA4E0; border-radius:4px; }
+</style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-dora-dark font-body text-dora-white overflow-auto"><!-- Navigation - Anywhere Door Style -->
+  <nav id="main-nav" class="sticky top-0 z-50 backdrop-blur-xl bg-dora-dark/80 border-b border-dora-blue/20">
+   <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between"><a href="#" class="flex items-center gap-3 group">
+     <div class="anywhere-door w-10 h-12 flex items-center justify-center door-glow"><span class="text-white font-heading text-sm">D</span>
+     </div><span id="nav-title" class="font-heading text-xl text-white tracking-wide">ドラえもん<span class="text-dora-red">Archive</span></span> </a>
+    <div class="hidden md:flex items-center gap-1"><a href="#hero" class="nav-item px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white rounded-lg transition">Home</a> <a href="#categories" class="nav-item px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white rounded-lg transition">Categories</a> <a href="#archive" class="nav-item px-4 py-2 text-sm font-semibold text-gray-300 hover:text-white rounded-lg transition">Archive</a> <a href="#gdrive" class="nav-item px-4 py-2 text-sm font-semibold text-dora-yellow hover:text-white rounded-lg transition bell-swing">📂 GDrive</a>
+    </div>
+    <div class="flex items-center gap-2">
+      <button id="login-btn" onclick="openLoginModal()" class="hidden md:flex items-center gap-2 px-4 py-2 bg-dora-blue hover:bg-blue-500 text-white text-sm font-bold rounded-xl transition-all duration-200">
+        <i data-lucide="log-in" class="w-4 h-4"></i> Login
+      </button>
+      <div id="user-badge" class="hidden items-center gap-2 px-3 py-2 bg-green-500/20 border border-green-500/30 rounded-xl">
+        <i data-lucide="user-check" class="w-4 h-4 text-green-400"></i>
+        <span id="user-badge-name" class="text-green-400 text-xs font-bold"></span>
+        <button onclick="logoutUser()" class="text-red-400 hover:text-red-300 ml-1 text-xs">✕</button>
+      </div>
+      <button id="mobile-menu-btn" class="md:hidden text-white p-2"><i data-lucide="menu" class="w-6 h-6"></i></button>
+    </div>
+   </div>
+   <div id="mobile-menu" class="hidden md:hidden px-4 pb-4 space-y-2"><a href="#hero" class="block px-4 py-2 text-gray-300 hover:text-white hover:bg-dora-blue/20 rounded-lg transition">Home</a> <a href="#categories" class="block px-4 py-2 text-gray-300 hover:text-white hover:bg-dora-blue/20 rounded-lg transition">Categories</a> <a href="#archive" class="block px-4 py-2 text-gray-300 hover:text-white hover:bg-dora-blue/20 rounded-lg transition">Archive</a> <a href="#gdrive" class="block px-4 py-2 text-dora-yellow hover:bg-dora-blue/20 rounded-lg transition">📂 GDrive</a>
+   </div>
+  </nav><!-- Hero Section -->
+  <section id="hero" class="relative pocket-bg py-20 md:py-28 px-4">
+   <div class="max-w-4xl mx-auto text-center"><!-- Doraemon face SVG -->
+    <div class="float-anim mb-8 inline-block">
+     <svg width="100" height="100" viewbox="0 0 100 100" class="drop-shadow-2xl"><circle cx="50" cy="50" r="48" fill="#2BA4E0" stroke="#0F2340" stroke-width="2" /> <ellipse cx="50" cy="55" rx="38" ry="35" fill="white" /> <circle cx="38" cy="38" r="10" fill="white" /><circle cx="62" cy="38" r="10" fill="white" /> <circle cx="42" cy="37" r="5" fill="#0A1628" /><circle cx="58" cy="37" r="5" fill="#0A1628" /> <circle cx="43" cy="35" r="1.5" fill="white" /><circle cx="59" cy="35" r="1.5" fill="white" /> <circle cx="50" cy="46" r="5" fill="#E8413C" /> <line x1="50" y1="51" x2="50" y2="68" stroke="#0A1628" stroke-width="2" /> <path d="M30 60 Q50 78 70 60" fill="none" stroke="#0A1628" stroke-width="2" /> <line x1="18" y1="52" x2="32" y2="48" stroke="#0A1628" stroke-width="1.5" /> <line x1="18" y1="58" x2="32" y2="56" stroke="#0A1628" stroke-width="1.5" /> <line x1="68" y1="48" x2="82" y2="52" stroke="#0A1628" stroke-width="1.5" /> <line x1="68" y1="56" x2="82" y2="58" stroke="#0A1628" stroke-width="1.5" /> <!-- Bell --> <circle cx="50" cy="76" r="6" fill="#FFD93D" stroke="#D4A800" stroke-width="1" /> <line x1="50" y1="76" x2="50" y2="80" stroke="#D4A800" stroke-width="1.5" />
+     </svg>
+    </div>
+    <h1 id="hero-title" class="font-heading text-4xl md:text-6xl text-white mb-3 tracking-tight">Doraemon Video Archive</h1>
+    <p id="hero-sub" class="text-lg md:text-xl text-dora-blue/80 mb-10 font-semibold">Search the 4D Pocket for any episode or movie!</p><!-- Search Gadget Bar -->
+    <div class="search-glow max-w-2xl mx-auto flex items-center bg-dora-navy/90 border-2 border-dora-blue/30 rounded-2xl overflow-hidden transition-all duration-300">
+     <div class="pl-5 text-dora-blue">
+      <i data-lucide="search" class="w-5 h-5"></i>
+     </div><input id="search-input" type="text" placeholder="🔍 Search gadgets, episodes, movies..." class="flex-1 bg-transparent px-4 py-4 text-white placeholder-gray-500 outline-none text-base font-semibold"> <button id="search-btn" class="bg-dora-red hover:bg-red-600 text-white px-6 py-4 font-bold transition-colors text-sm"> Search </button>
+    </div>
+    <div class="mt-4 flex flex-wrap justify-center gap-2 text-xs font-semibold text-gray-500"><span class="px-3 py-1 bg-dora-navy/50 rounded-full cursor-pointer hover:text-dora-blue transition" onclick="document.getElementById('search-input').value='Take-copter';filterVideos()">Take-copter</span> <span class="px-3 py-1 bg-dora-navy/50 rounded-full cursor-pointer hover:text-dora-blue transition" onclick="document.getElementById('search-input').value='Nobita';filterVideos()">Nobita</span> <span class="px-3 py-1 bg-dora-navy/50 rounded-full cursor-pointer hover:text-dora-blue transition" onclick="document.getElementById('search-input').value='Movie';filterVideos()">Movies</span>
+    </div>
+   </div>
+  </section><!-- Categories Section -->
+  <section id="categories" class="py-16 px-4">
+   <div class="max-w-7xl mx-auto">
+    <h2 class="font-heading text-2xl md:text-3xl text-white mb-8 flex items-center gap-3"><span class="w-10 h-10 bg-dora-red rounded-xl flex items-center justify-center text-lg">📁</span> Categories</h2>
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3" id="category-grid">
+    </div>
+   </div>
+  </section><!-- GDrive Folder Notice -->
+  <section id="gdrive" class="px-4 pb-12">
+   <div class="max-w-7xl mx-auto">
+    <div class="bg-gradient-to-r from-dora-navy to-dora-dark border border-dora-blue/20 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
+     <div class="w-16 h-16 bg-dora-blue/20 rounded-2xl flex items-center justify-center shrink-0"><span class="text-3xl">📂</span>
+     </div>
+     <div class="flex-1 text-center md:text-left">
+      <h3 class="font-heading text-xl text-white mb-1">Google Drive Collection</h3>
+      <p class="text-gray-400 text-sm">Seasons 1–8 &amp; 14–20 available in GDrive folder. Bangla dubbed episodes archived and organized by season.</p>
+     </div>
+     <div class="flex gap-3 flex-wrap justify-center shrink-0"><span class="px-4 py-2 bg-dora-blue/20 text-dora-blue rounded-xl text-sm font-bold group-hover:bg-dora-blue/40 transition">S1–S8 ✅</span> <span class="px-4 py-2 bg-dora-blue/20 text-dora-blue rounded-xl text-sm font-bold group-hover:bg-dora-blue/40 transition">S14–S20 ✅</span> <span class="px-4 py-2 bg-dora-red/20 text-dora-red rounded-xl text-sm font-bold">S9–S13 ❌</span> <button onclick="window.open('https://tinyurl.com/2c5vnfuy', '_blank')" class="px-6 py-2 bg-dora-blue hover:bg-dora-blue/80 text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2 whitespace-nowrap"><i data-lucide="external-link" class="w-4 h-4"></i> Request Access</button>
+     </div>
+    </div>
+   </div>
+  </section><!-- Video Archive - Season Wise -->
+  <section id="archive" class="py-16 px-4">
+   <div class="max-w-7xl mx-auto">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-8 gap-4">
+     <h2 class="font-heading text-2xl md:text-3xl text-white flex items-center gap-3"><span class="w-10 h-10 bg-dora-blue rounded-xl flex items-center justify-center text-lg">🎬</span> Video Archive</h2>
+     <div class="flex items-center gap-3">
+      <span class="text-sm text-gray-400"><span id="video-count">0</span> episodes</span>
+      <button onclick="expandAllSeasons()" class="text-xs px-3 py-1.5 bg-dora-blue/20 hover:bg-dora-blue/40 text-dora-blue rounded-lg transition font-semibold">Expand All</button>
+      <button onclick="collapseAllSeasons()" class="text-xs px-3 py-1.5 bg-gray-700/50 hover:bg-gray-700 text-gray-400 rounded-lg transition font-semibold">Collapse All</button>
+     </div>
+    </div>
+    <!-- Search mode: flat grid -->
+    <div id="search-results-section" class="hidden">
+     <div id="video-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+    </div>
+    <!-- Season accordion sections -->
+    <div id="season-sections"></div>
+    <div id="no-results" class="hidden text-center py-20">
+     <div class="text-6xl mb-4">🔍</div>
+     <p class="font-heading text-xl text-gray-500">No episodes found in the 4D Pocket!</p>
+     <p class="text-gray-600 text-sm mt-2">Try a different search term.</p>
+    </div>
+   </div>
+  </section><!-- Footer -->
+  <footer class="bg-dora-navy border-t border-dora-blue/10 py-12 px-4">
+   <div class="max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+     <div>
+      <div class="flex items-center gap-3 mb-4">
+       <div class="anywhere-door w-8 h-10 flex items-center justify-center">
+        <span class="text-white font-heading text-xs">D</span>
+       </div><span class="font-heading text-lg text-white">ドラえもん<span class="text-dora-red">Archive</span></span>
+      </div>
+      <p class="text-gray-500 text-sm leading-relaxed">A fan-made archive cataloguing Doraemon episodes, movies, and specials. Not affiliated with Fujiko F. Fujio or TV Asahi.</p>
+     </div>
+     <div>
+      <h4 class="font-heading text-sm text-dora-blue mb-3">Quick Links</h4>
+      <div class="space-y-2 text-sm text-gray-500"><a href="#hero" class="block hover:text-white transition">Home</a> <a href="#categories" class="block hover:text-white transition">Categories</a> <a href="#archive" class="block hover:text-white transition">Archive</a>
+      </div>
+     </div>
+     <div>
+      <h4 class="font-heading text-sm text-dora-blue mb-3">Seasons on GDrive</h4>
+      <div class="flex flex-wrap gap-2 text-xs"><span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S1</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S2</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S3</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S4</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S5</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S6</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S7</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S8</span> <span class="px-2 py-1 bg-gray-800 text-gray-600 rounded line-through">S9–13</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S14</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S15</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S16</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S17</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S18</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S19</span> <span class="px-2 py-1 bg-dora-blue/10 text-dora-blue rounded">S20</span>
+      </div>
+     </div>
+    </div>
+    <div class="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
+     <p id="footer-text" class="text-gray-600 text-xs">© 2024 Doraemon Archive — Fan Project. All rights belong to Fujiko F. Fujio Productions.</p>
+     <div class="flex items-center gap-1 text-gray-600 text-xs">
+      Made with <span class="text-dora-red mx-1">❤</span> from the 22nd century
+     </div>
+    </div>
+   </div>
+  </footer>
+  <script>
+// Data
+const categories = [
+  { name: 'Season 1–8', icon: '📺', tag: 'season-early', count: 320 },
+  { name: 'Season 14–20', icon: '📡', tag: 'season-late', count: 280 },
+  { name: 'Movies', icon: '🎬', tag: 'movie', count: 42 },
+  { name: 'Specials', icon: '⭐', tag: 'special', count: 18 },
+  { name: 'Shorts', icon: '🎞️', tag: 'short', count: 55 },
+  { name: 'All', icon: '🌀', tag: 'all', count: 715 },
+];
+
+// Google Drive folder IDs for each season
+const DRIVE_BASE = 'https://drive.google.com/file/d/';
+const DRIVE_PREVIEW = '/preview';
+
+// All Seasons data (S1-S8) with Google Drive IDs - Combined from all provided data
+const allEpisodes = [
+  // Season 8 (51 episodes)
+  { title: 'Doraemon S08E01', season: 'S8', tag: 'season-early', ep: 'S8E01', color: '#2BA4E0', driveId: '1tfxZXJJZQi80rqZSjIXic9-_cIj-9Yme' },
+  { title: 'Doraemon S08E02', season: 'S8', tag: 'season-early', ep: 'S8E02', color: '#E8413C', driveId: '18R2O-2lApp0iwHaSJXXJaE6pYdReiRfa' },
+  { title: 'Doraemon S08E03', season: 'S8', tag: 'season-early', ep: 'S8E03', color: '#FFD93D', driveId: '1k0PXSWBMI8-e7V2umJx_-5zHSFNhB-W2' },
+  { title: 'Doraemon S08E04', season: 'S8', tag: 'season-early', ep: 'S8E04', color: '#2BA4E0', driveId: '1ThgKUWVZ1epAJs7eBLY0DgJvZHLW-pU8' },
+  { title: 'Doraemon S08E05', season: 'S8', tag: 'season-early', ep: 'S8E05', color: '#E8413C', driveId: '1iKe3t3ARPFwVOkeFGj0IFVQnSS2qqUY4' },
+  { title: 'Doraemon S08E06', season: 'S8', tag: 'season-early', ep: 'S8E06', color: '#FFD93D', driveId: '1zlRbG-WBMlElnG1QxNaJKD-sjcY4Gc4y' },
+  { title: 'Doraemon S08E07', season: 'S8', tag: 'season-early', ep: 'S8E07', color: '#2BA4E0', driveId: '1yKsfgBTiB_x8THClso5PV39kpI-VppAJ' },
+  { title: 'Doraemon S08E08', season: 'S8', tag: 'season-early', ep: 'S8E08', color: '#E8413C', driveId: '1U1lbECl64bDnGjJcsBAj82gByk2izI-E' },
+  { title: 'Doraemon S08E09', season: 'S8', tag: 'season-early', ep: 'S8E09', color: '#FFD93D', driveId: '1pVf2W91dS6yjPC7BCsqSJsBnQ3jhzTSA' },
+  { title: 'Doraemon S08E10', season: 'S8', tag: 'season-early', ep: 'S8E10', color: '#2BA4E0', driveId: '1FiA6WRpRZrVNXABw5mhryD6KuQVbfKJU' },
+  { title: 'Doraemon S08E11', season: 'S8', tag: 'season-early', ep: 'S8E11', color: '#E8413C', driveId: '1mgtM0qOuZ1Ufi_TNOQhOjOCPFzKzIB3u' },
+  { title: 'Doraemon S08E12', season: 'S8', tag: 'season-early', ep: 'S8E12', color: '#FFD93D', driveId: '19RKSKMPzg7hnQsyu02XlxvDcvYmPojIc' },
+  { title: 'Doraemon S08E13', season: 'S8', tag: 'season-early', ep: 'S8E13', color: '#2BA4E0', driveId: '1tEU8nQf5umX5D15tIZWjY3NtDvqkjPky' },
+  { title: 'Doraemon S08E14', season: 'S8', tag: 'season-early', ep: 'S8E14', color: '#E8413C', driveId: '1pXuFGIt51JwxK2EcJ8JAg2rU7aBbNv4b' },
+  { title: 'Doraemon S08E15', season: 'S8', tag: 'season-early', ep: 'S8E15', color: '#FFD93D', driveId: '15bYbfzN43_NiVkcFhYu3d7bJSpnNMMBz' },
+  { title: 'Doraemon S08E16', season: 'S8', tag: 'season-early', ep: 'S8E16', color: '#2BA4E0', driveId: '17KYa7OSAD9Qh3bkFjoXoN5MwqaEd8Jr4' },
+  { title: 'Doraemon S08E17', season: 'S8', tag: 'season-early', ep: 'S8E17', color: '#E8413C', driveId: '1jMUOYYD1H2CD7s21Ft6UTSkeq3jwOmcF' },
+  { title: 'Doraemon S08E18', season: 'S8', tag: 'season-early', ep: 'S8E18', color: '#FFD93D', driveId: '1ml65hpWBQjJvuIYLTjcZ06fR2IHr-faP' },
+  { title: 'Doraemon S08E19', season: 'S8', tag: 'season-early', ep: 'S8E19', color: '#2BA4E0', driveId: '1ADMb6ONNewYOGQ1Z654N3ddFDUrtMdSG' },
+  { title: 'Doraemon S08E20', season: 'S8', tag: 'season-early', ep: 'S8E20', color: '#E8413C', driveId: '1RbR8ixX2ayhk0q89DcSi4rKdH8SvXz_1' },
+  { title: 'Doraemon S08E21', season: 'S8', tag: 'season-early', ep: 'S8E21', color: '#FFD93D', driveId: '1TKxuWt-6RropdlCpuHkv4Ke8teuxURbL' },
+  { title: 'Doraemon S08E22', season: 'S8', tag: 'season-early', ep: 'S8E22', color: '#2BA4E0', driveId: '1ukiw63IP_ZvFrEdTtkx1PrSbmeE_zDKa' },
+  { title: 'Doraemon S08E23', season: 'S8', tag: 'season-early', ep: 'S8E23', color: '#E8413C', driveId: '1rTjXpVTeQoRvBzGlBCMpkWGoYOMzkw0n' },
+  { title: 'Doraemon S08E24', season: 'S8', tag: 'season-early', ep: 'S8E24', color: '#FFD93D', driveId: '13j9bT98kS6mM5RcPxtn74epGsixNpitF' },
+  { title: 'Doraemon S08E25', season: 'S8', tag: 'season-early', ep: 'S8E25', color: '#2BA4E0', driveId: '10txYSvwYxNAID3kseTKBnWfvoqmp_hcr' },
+  { title: 'Doraemon S08E26', season: 'S8', tag: 'season-early', ep: 'S8E26', color: '#E8413C', driveId: '1M9LOZsCgz8gBcGLUFzB6OeWhx3okfFUA' },
+  { title: 'Doraemon S08E27', season: 'S8', tag: 'season-early', ep: 'S8E27', color: '#FFD93D', driveId: '1MBv0t8UE1XZ--DNusAS0jNs1qJ5eUOrF' },
+  { title: 'Doraemon S08E28', season: 'S8', tag: 'season-early', ep: 'S8E28', color: '#2BA4E0', driveId: '1ZsNpiYnVvh8N835tvrJolRu1Xf1K4Jf3' },
+  { title: 'Doraemon S08E29', season: 'S8', tag: 'season-early', ep: 'S8E29', color: '#E8413C', driveId: '1jCuDcBTr1Dr6Uif6R3A-7MX8Zv19bAKT' },
+  { title: 'Doraemon S08E30', season: 'S8', tag: 'season-early', ep: 'S8E30', color: '#FFD93D', driveId: '1JRPsQUfMdMYMbpQEJvaI8qhXG66kbC07' },
+  { title: 'Doraemon S08E31', season: 'S8', tag: 'season-early', ep: 'S8E31', color: '#2BA4E0', driveId: '1utnu38pzkHspgqjOM-pBkoYyEvAYD2pH' },
+  { title: 'Doraemon S08E32', season: 'S8', tag: 'season-early', ep: 'S8E32', color: '#E8413C', driveId: '1yQur2iJzBPVCcs0arI76E9Nsjc2nJeI1' },
+  { title: 'Doraemon S08E33', season: 'S8', tag: 'season-early', ep: 'S8E33', color: '#FFD93D', driveId: '1YtAQEKfxvd2ftQaugofNwOjWAPP-mzXu' },
+  { title: 'Doraemon S08E34', season: 'S8', tag: 'season-early', ep: 'S8E34', color: '#2BA4E0', driveId: '1V6cuHaXTA6aqEuNP0bZJwwAM_6xGSWdJ' },
+  { title: 'Doraemon S08E35', season: 'S8', tag: 'season-early', ep: 'S8E35', color: '#E8413C', driveId: '1Zqh8L0m-Ws2AVmt7sStEx4Uuiq5IohPY' },
+  { title: 'Doraemon S08E36', season: 'S8', tag: 'season-early', ep: 'S8E36', color: '#FFD93D', driveId: '1Aixd-ldY3as-WshBgVzXmjdiJ8okPRlu' },
+  { title: 'Doraemon S08E37', season: 'S8', tag: 'season-early', ep: 'S8E37', color: '#2BA4E0', driveId: '1nrL--oIXqQRPitgStCeC9d5xfY2Ig3lF' },
+  { title: 'Doraemon S08E38', season: 'S8', tag: 'season-early', ep: 'S8E38', color: '#E8413C', driveId: '11OJoItfm3Bxb72Jhyv7WbL4BOeiyzxPG' },
+  { title: 'Doraemon S08E39', season: 'S8', tag: 'season-early', ep: 'S8E39', color: '#FFD93D', driveId: '12uC6FmAdJ_QdBuNQzPe0tn2PYyXXtvq7' },
+  { title: 'Doraemon S08E40', season: 'S8', tag: 'season-early', ep: 'S8E40', color: '#2BA4E0', driveId: '14aqhFKQSbXWJUhHR5tH2SGWtlPjGP-9W' },
+  { title: 'Doraemon S08E41', season: 'S8', tag: 'season-early', ep: 'S8E41', color: '#E8413C', driveId: '1HIFt7KyGrBfU1K8Ph1EnPYQ-sTSGWRcW' },
+  { title: 'Doraemon S08E42', season: 'S8', tag: 'season-early', ep: 'S8E42', color: '#FFD93D', driveId: '18XFs36ZemLol3g-N24cvmRSOZLtCMByH' },
+  { title: 'Doraemon S08E43', season: 'S8', tag: 'season-early', ep: 'S8E43', color: '#2BA4E0', driveId: '1M1ciPF87IyEG2SqnbOE2-5jwDPG1YZP8' },
+  { title: 'Doraemon S08E44', season: 'S8', tag: 'season-early', ep: 'S8E44', color: '#E8413C', driveId: '1GkEUwlrISfrl-rZTv11r2E447xCV39NO' },
+  { title: 'Doraemon S08E45', season: 'S8', tag: 'season-early', ep: 'S8E45', color: '#FFD93D', driveId: '11le6KmUsmpjbT6ziAeCdq3ftV8nGkN4I' },
+  { title: 'Doraemon S08E46', season: 'S8', tag: 'season-early', ep: 'S8E46', color: '#2BA4E0', driveId: '1XLCMYQvWUvoRxG0YbO5fg4H-BVLDU0f-' },
+  { title: 'Doraemon S08E47', season: 'S8', tag: 'season-early', ep: 'S8E47', color: '#E8413C', driveId: '1JZjURM_QdNK8IhEnBaWVThME5YBeaUtU' },
+  { title: 'Doraemon S08E48', season: 'S8', tag: 'season-early', ep: 'S8E48', color: '#FFD93D', driveId: '1Dgk-BBEEz367YddmfVjy9a_LOJpAhBt1' },
+  { title: 'Doraemon S08E49', season: 'S8', tag: 'season-early', ep: 'S8E49', color: '#2BA4E0', driveId: '144syojx2HnTUHgVTPnsQE6HQ84khT3xX' },
+  { title: 'Doraemon S08E50', season: 'S8', tag: 'season-early', ep: 'S8E50', color: '#E8413C', driveId: '1v-HsyYbGAL4I3ydJNf7WQpHpxklPHOL3' },
+  { title: 'Doraemon S08E51', season: 'S8', tag: 'season-early', ep: 'S8E51', color: '#FFD93D', driveId: '1vQRWNol3ei9xt3Yw_C75D3tLggkWQ8Xi' },
+  // Season 7 (52 episodes)
+  { title: 'Doraemon S07E01', season: 'S7', tag: 'season-early', ep: 'S7E01', color: '#2BA4E0', driveId: '1P_WK9ZN0n0giehCS-SB_Cgp4OrAHrP-c' },
+  { title: 'Doraemon S07E02', season: 'S7', tag: 'season-early', ep: 'S7E02', color: '#E8413C', driveId: '1PmhTxudwb2bu27z8suqrG_08ByddN-4m' },
+  { title: 'Doraemon S07E03', season: 'S7', tag: 'season-early', ep: 'S7E03', color: '#FFD93D', driveId: '1ThLDpoT-8HYH56lGKecHu7Sn2XFq8dDr' },
+  { title: 'Doraemon S07E04', season: 'S7', tag: 'season-early', ep: 'S7E04', color: '#2BA4E0', driveId: '1n6T73PbpPlYek_hxQAlROs9IDe26UOxB' },
+  { title: 'Doraemon S07E05', season: 'S7', tag: 'season-early', ep: 'S7E05', color: '#E8413C', driveId: '1Jfqz3EJG6yMoaHJqwnBrXs1FYYaGJk1A' },
+  { title: 'Doraemon S07E06', season: 'S7', tag: 'season-early', ep: 'S7E06', color: '#FFD93D', driveId: '18rgYhiwpCHmhpqLYu1v_Rg6tS5PzhA1m' },
+  { title: 'Doraemon S07E07', season: 'S7', tag: 'season-early', ep: 'S7E07', color: '#2BA4E0', driveId: '1g_1sQzHa5j5ZdoLIjO_AG1Ftb1_O4aEw' },
+  { title: 'Doraemon S07E08', season: 'S7', tag: 'season-early', ep: 'S7E08', color: '#E8413C', driveId: '1Hu0kHpJe_D_Rri6pNLjvSGoPWBQ5HPZU' },
+  { title: 'Doraemon S07E09', season: 'S7', tag: 'season-early', ep: 'S7E09', color: '#FFD93D', driveId: '1wphMkl2Bo-PnYT2cefyY6cyCSTLCljR_' },
+  { title: 'Doraemon S07E10', season: 'S7', tag: 'season-early', ep: 'S7E10', color: '#2BA4E0', driveId: '1CZyUePhvAWlzxsDh9njGFRghgUHEQz1J' },
+  { title: 'Doraemon S07E11', season: 'S7', tag: 'season-early', ep: 'S7E11', color: '#E8413C', driveId: '1NvtmOqITf-Pe7oCgC27pIBFJChlNH9Ap' },
+  { title: 'Doraemon S07E12', season: 'S7', tag: 'season-early', ep: 'S7E12', color: '#FFD93D', driveId: '1AbkWFnKsnTh_Jg1_BsRHKFCMmuBIUIVX' },
+  { title: 'Doraemon S07E13', season: 'S7', tag: 'season-early', ep: 'S7E13', color: '#2BA4E0', driveId: '1nwbDHZbI8mtKHllHejz1TRAIMgyOemnQ' },
+  { title: 'Doraemon S07E14', season: 'S7', tag: 'season-early', ep: 'S7E14', color: '#E8413C', driveId: '1_X_Dzyef1bouhqG47rFkeMC0-ABnTyVI' },
+  { title: 'Doraemon S07E15', season: 'S7', tag: 'season-early', ep: 'S7E15', color: '#FFD93D', driveId: '1o1KHH2qeBlYQCzrdK5c01rOCHW56UlVo' },
+  { title: 'Doraemon S07E16', season: 'S7', tag: 'season-early', ep: 'S7E16', color: '#2BA4E0', driveId: '1sZ4H-gyX_gK9vwVuMzSE4wmK5-yFu9Cx' },
+  { title: 'Doraemon S07E17', season: 'S7', tag: 'season-early', ep: 'S7E17', color: '#E8413C', driveId: '1trxd2CXV8BvEPabybpmYswrgKlBWBZU6' },
+  { title: 'Doraemon S07E18', season: 'S7', tag: 'season-early', ep: 'S7E18', color: '#FFD93D', driveId: '1S86S62Y8re7YgTxhDDwOxXKus3dPBUlC' },
+  { title: 'Doraemon S07E19', season: 'S7', tag: 'season-early', ep: 'S7E19', color: '#2BA4E0', driveId: '1JPO9XV29JFeeH0GW5YCvaJHWNRIYXp6B' },
+  { title: 'Doraemon S07E20', season: 'S7', tag: 'season-early', ep: 'S7E20', color: '#E8413C', driveId: '1pcz7MS7VAXEvkY03cgjzuKMQo8jpbyfm' },
+  { title: 'Doraemon S07E21', season: 'S7', tag: 'season-early', ep: 'S7E21', color: '#FFD93D', driveId: '1eqGVExTCXQivRH_TeUyLW8hf7WKXBRba' },
+  { title: 'Doraemon S07E22', season: 'S7', tag: 'season-early', ep: 'S7E22', color: '#2BA4E0', driveId: '1EV5Wj0e9I2IAPXZm3jz9mySdZYbp_PQT' },
+  { title: 'Doraemon S07E23', season: 'S7', tag: 'season-early', ep: 'S7E23', color: '#E8413C', driveId: '1MmePh6Sg0oohDJagT1g98mFrYWjdLYAh' },
+  { title: 'Doraemon S07E24', season: 'S7', tag: 'season-early', ep: 'S7E24', color: '#FFD93D', driveId: '1ZcTQj36txmd8pX1G9eHu5sloNCFxwAp6' },
+  { title: 'Doraemon S07E25', season: 'S7', tag: 'season-early', ep: 'S7E25', color: '#2BA4E0', driveId: '1US4-j-2OMuyeZOmXjj_6MJOMUlh9zPwX' },
+  { title: 'Doraemon S07E26', season: 'S7', tag: 'season-early', ep: 'S7E26', color: '#E8413C', driveId: '1d7cQWbUvNc6TOLk3yMBNNlZAtOcMxBjF' },
+  { title: 'Doraemon S07E27', season: 'S7', tag: 'season-early', ep: 'S7E27', color: '#FFD93D', driveId: '1NJM4ifU9Xms92ctnH7_Oi7SwmSfWXUik' },
+  { title: 'Doraemon S07E28', season: 'S7', tag: 'season-early', ep: 'S7E28', color: '#2BA4E0', driveId: '1KoyL7_PMjUJ7Ym-qkXRjK2tUXLWsWETH' },
+  { title: 'Doraemon S07E29', season: 'S7', tag: 'season-early', ep: 'S7E29', color: '#E8413C', driveId: '1yHRwFGETE9rkTNbVFG9K2hdwUyfxEMde' },
+  { title: 'Doraemon S07E30', season: 'S7', tag: 'season-early', ep: 'S7E30', color: '#FFD93D', driveId: '1FstZZAwfLWGCA6y1pPvpGl2pNEtgl89Z' },
+  { title: 'Doraemon S07E31', season: 'S7', tag: 'season-early', ep: 'S7E31', color: '#2BA4E0', driveId: '1dd2OuXuvDKolFSryWEsUvQpeN8Zt78oV' },
+  { title: 'Doraemon S07E32', season: 'S7', tag: 'season-early', ep: 'S7E32', color: '#E8413C', driveId: '1Gh2yPSMKb5j6h7a8Cmlxd26AqFQmIP40' },
+  { title: 'Doraemon S07E33', season: 'S7', tag: 'season-early', ep: 'S7E33', color: '#FFD93D', driveId: '1X2tJp3YopnWLkBd3SdQCKTFHim8Z13kT' },
+  { title: 'Doraemon S07E34', season: 'S7', tag: 'season-early', ep: 'S7E34', color: '#2BA4E0', driveId: '1BkfPmcLpxNZqjbf2DPO16zGUtsVoY_gh' },
+  { title: 'Doraemon S07E35', season: 'S7', tag: 'season-early', ep: 'S7E35', color: '#E8413C', driveId: '1bDO-rP6sru1U-pUyzkwI8R1bWmRvJY2o' },
+  { title: 'Doraemon S07E36', season: 'S7', tag: 'season-early', ep: 'S7E36', color: '#FFD93D', driveId: '1dstrAEUMtqxyVZOP_gJt0NEjqUengIgt' },
+  { title: 'Doraemon S07E37', season: 'S7', tag: 'season-early', ep: 'S7E37', color: '#2BA4E0', driveId: '1HoSHPFp2wMoNWh22jRRmsyuRcbRzkXvU' },
+  { title: 'Doraemon S07E38', season: 'S7', tag: 'season-early', ep: 'S7E38', color: '#E8413C', driveId: '1p36_GoFVV4mABYHm0QemyvqZmcPMcVqX' },
+  { title: 'Doraemon S07E39', season: 'S7', tag: 'season-early', ep: 'S7E39', color: '#FFD93D', driveId: '1nRj0lQIdxmVHZ-27H1BfbCyiq159E1eT' },
+  { title: 'Doraemon S07E40', season: 'S7', tag: 'season-early', ep: 'S7E40', color: '#2BA4E0', driveId: '1aufNZCQIIhGOYOR-U56M6NwTzYRC6ye1' },
+  { title: 'Doraemon S07E41', season: 'S7', tag: 'season-early', ep: 'S7E41', color: '#E8413C', driveId: '1kSoYWIryaWujv6wT5ZU4vefVHY4U3LK2' },
+  { title: 'Doraemon S07E42', season: 'S7', tag: 'season-early', ep: 'S7E42', color: '#FFD93D', driveId: '1haCrB3cNOR0Hji77PrQhCCwMpuy2Rv_w' },
+  { title: 'Doraemon S07E43', season: 'S7', tag: 'season-early', ep: 'S7E43', color: '#2BA4E0', driveId: '1hLFxfEr88hCkyHUbabeiAwYz-l1hoTCz' },
+  { title: 'Doraemon S07E44', season: 'S7', tag: 'season-early', ep: 'S7E44', color: '#E8413C', driveId: '1BtrFdPiwlmXcwcOwWynMcAlJlp5pE4EI' },
+  { title: 'Doraemon S07E45', season: 'S7', tag: 'season-early', ep: 'S7E45', color: '#FFD93D', driveId: '195MzOl7ldOPuuOJTxBOpDG1jNsbkgzf1' },
+  { title: 'Doraemon S07E46', season: 'S7', tag: 'season-early', ep: 'S7E46', color: '#2BA4E0', driveId: '1oPFZyk3297CVKidIfvI-bO7U6fCiVXCW' },
+  { title: 'Doraemon S07E47', season: 'S7', tag: 'season-early', ep: 'S7E47', color: '#E8413C', driveId: '1OZe8Cn3Tk0zTjm-n1dg9ffQDaQPFYQO7' },
+  { title: 'Doraemon S07E48', season: 'S7', tag: 'season-early', ep: 'S7E48', color: '#FFD93D', driveId: '1MBgU2F03-wnNZ6tpv8MeIrcP-N2_-qXC' },
+  { title: 'Doraemon S07E49', season: 'S7', tag: 'season-early', ep: 'S7E49', color: '#2BA4E0', driveId: '1k4QQ7wu732BFj-OJDEQFthwSbomYpvtW' },
+  { title: 'Doraemon S07E50', season: 'S7', tag: 'season-early', ep: 'S7E50', color: '#E8413C', driveId: '1KMKAkeTFbFUs7np8FxOsSSuyIKRg_0gt' },
+  { title: 'Doraemon S07E51', season: 'S7', tag: 'season-early', ep: 'S7E51', color: '#FFD93D', driveId: '1x9bJgPHNW3yaPu8cKBKevptUamfn1_8_' },
+  { title: 'Doraemon S07E52', season: 'S7', tag: 'season-early', ep: 'S7E52', color: '#2BA4E0', driveId: '1pivfyaXv_h7IFD3nIUqbsKVzljeKGasb' },
+  // Season 6 (52 episodes)
+  { title: 'Doraemon S06E01', season: 'S6', tag: 'season-early', ep: 'S6E01', color: '#E8413C', driveId: '1T23lGgriIhVUBLGrlzhxzGxo8ore9nSB' },
+  { title: 'Doraemon S06E02', season: 'S6', tag: 'season-early', ep: 'S6E02', color: '#FFD93D', driveId: '1QO06ptaB5clcpOcufipy54IxZ8f6_Jbs' },
+  { title: 'Doraemon S06E03', season: 'S6', tag: 'season-early', ep: 'S6E03', color: '#2BA4E0', driveId: '12kPQX7fXLa5CMvfSs2jJVADfeEx77cDp' },
+  { title: 'Doraemon S06E04', season: 'S6', tag: 'season-early', ep: 'S6E04', color: '#E8413C', driveId: '13SAc7t1BLVOlnsFlilKzFsOpZZP5YwdG' },
+  { title: 'Doraemon S06E05', season: 'S6', tag: 'season-early', ep: 'S6E05', color: '#FFD93D', driveId: '1vHfYUFcdMDhpqKaaojddKXX2u6zD87fY' },
+  { title: 'Doraemon S06E06', season: 'S6', tag: 'season-early', ep: 'S6E06', color: '#2BA4E0', driveId: '1M3Vw7fUhmkb-37A5oW0bCKp1ZcOHKk5d' },
+  { title: 'Doraemon S06E07', season: 'S6', tag: 'season-early', ep: 'S6E07', color: '#E8413C', driveId: '1Og29Y7XVpZTeg16HpwMlsNPzA0ShTYg7' },
+  { title: 'Doraemon S06E08', season: 'S6', tag: 'season-early', ep: 'S6E08', color: '#FFD93D', driveId: '1MNiYi1iZPC1Ox10hewMWQXQMhYguB1VZ' },
+  { title: 'Doraemon S06E09', season: 'S6', tag: 'season-early', ep: 'S6E09', color: '#2BA4E0', driveId: '1oLSB550torcFOmdYRkpIfhKe_oiUlx8Z' },
+  { title: 'Doraemon S06E10', season: 'S6', tag: 'season-early', ep: 'S6E10', color: '#E8413C', driveId: '1lqojbosqLdnUkWmIDzL0nOfoi5HYN3sw' },
+  { title: 'Doraemon S06E11', season: 'S6', tag: 'season-early', ep: 'S6E11', color: '#FFD93D', driveId: '1haFKc0ObDMx2wSsvyvxpdX1fk6weC01x' },
+  { title: 'Doraemon S06E12', season: 'S6', tag: 'season-early', ep: 'S6E12', color: '#2BA4E0', driveId: '1iGBXCLBj6GrxNu_iW3npkbN6f2_5jLZo' },
+  { title: 'Doraemon S06E13', season: 'S6', tag: 'season-early', ep: 'S6E13', color: '#E8413C', driveId: '1hTncf1jH97VDjxTgQtpbptqkkI4xsCW4' },
+  { title: 'Doraemon S06E14', season: 'S6', tag: 'season-early', ep: 'S6E14', color: '#FFD93D', driveId: '1X_hoWpsfqrMOPbEEXmxT1fRHPWfaMD7d' },
+  { title: 'Doraemon S06E15', season: 'S6', tag: 'season-early', ep: 'S6E15', color: '#2BA4E0', driveId: '16YgHfiN0K-vOgMrQb75ZQAH65GXmsiGQ' },
+  { title: 'Doraemon S06E16', season: 'S6', tag: 'season-early', ep: 'S6E16', color: '#E8413C', driveId: '1V3OQ9ls4ihE6RI59jaSvpYJM3X2FwXNF' },
+  { title: 'Doraemon S06E17', season: 'S6', tag: 'season-early', ep: 'S6E17', color: '#FFD93D', driveId: '1iANlBMpYrOv8Q3L9HmlN_zwJS0nXKIQk' },
+  { title: 'Doraemon S06E18', season: 'S6', tag: 'season-early', ep: 'S6E18', color: '#2BA4E0', driveId: '1JUKfV8hh4Wai3zV4y5oRWMFg36O5Env_' },
+  { title: 'Doraemon S06E19', season: 'S6', tag: 'season-early', ep: 'S6E19', color: '#E8413C', driveId: '12PiW-cOuq2Icu6G39ftHqiydz71rszA3' },
+  { title: 'Doraemon S06E20', season: 'S6', tag: 'season-early', ep: 'S6E20', color: '#FFD93D', driveId: '1skCOjGl4ROm2L1Jowe14Eo3eRKA_BMD4' },
+  { title: 'Doraemon S06E21', season: 'S6', tag: 'season-early', ep: 'S6E21', color: '#2BA4E0', driveId: '1RpT5jS62SOY9pn4AO2f1vlVjB_WhFcaT' },
+  { title: 'Doraemon S06E22', season: 'S6', tag: 'season-early', ep: 'S6E22', color: '#E8413C', driveId: '1S36jheW6CBm2Q7YZJywEpT3M-QqZz8EF' },
+  { title: 'Doraemon S06E23', season: 'S6', tag: 'season-early', ep: 'S6E23', color: '#FFD93D', driveId: '102FGz8gmEqaCWNaN_PifOk5uOOZY3AKv' },
+  { title: 'Doraemon S06E24', season: 'S6', tag: 'season-early', ep: 'S6E24', color: '#2BA4E0', driveId: '1Ifddi89yDk_HMcbdb2NTUflmPiONOgrI' },
+  { title: 'Doraemon S06E25', season: 'S6', tag: 'season-early', ep: 'S6E25', color: '#E8413C', driveId: '1T-Q_wjGxB9w-Vk5K2JvhHau_eEGeSZ3S' },
+  { title: 'Doraemon S06E26', season: 'S6', tag: 'season-early', ep: 'S6E26', color: '#FFD93D', driveId: '1j_ierTosBctG6uXFYAPGMV_4jIxcgNR2' },
+  { title: 'Doraemon S06E27', season: 'S6', tag: 'season-early', ep: 'S6E27', color: '#2BA4E0', driveId: '1_hRE1uYbdhzhU_MQt1NKVl6XcRKjdEKE' },
+  { title: 'Doraemon S06E28', season: 'S6', tag: 'season-early', ep: 'S6E28', color: '#E8413C', driveId: '1cE7NYvogCUP23KCTQCmkD_yaJZ1MyfLJ' },
+  { title: 'Doraemon S06E29', season: 'S6', tag: 'season-early', ep: 'S6E29', color: '#FFD93D', driveId: '1WEDmmra9gorQ537BfrFoQ-9-8nSjP0iG' },
+  { title: 'Doraemon S06E30', season: 'S6', tag: 'season-early', ep: 'S6E30', color: '#2BA4E0', driveId: '1HtVgZr2wCekSrJOoWQhLQ9sjShnfHvVi' },
+  { title: 'Doraemon S06E31', season: 'S6', tag: 'season-early', ep: 'S6E31', color: '#E8413C', driveId: '1chrQ1D3LWPK-Qt8Jhfo0Xcn-xuTlPtOR' },
+  { title: 'Doraemon S06E32', season: 'S6', tag: 'season-early', ep: 'S6E32', color: '#FFD93D', driveId: '1Nx2bQNU28mvU6PzjgOEKOkFqt4kF_fH3' },
+  { title: 'Doraemon S06E33', season: 'S6', tag: 'season-early', ep: 'S6E33', color: '#2BA4E0', driveId: '1koLvJ9JtLV3tB0EY_PZJ-KV0diLUiZor' },
+  { title: 'Doraemon S06E34', season: 'S6', tag: 'season-early', ep: 'S6E34', color: '#E8413C', driveId: '1wPmmazF94fv5cBoHgQDrrTkk8cJMhrZ1' },
+  { title: 'Doraemon S06E35', season: 'S6', tag: 'season-early', ep: 'S6E35', color: '#FFD93D', driveId: '1Zl2kbIZrokDpkOqsTd-QVOUuI0lbmVP4' },
+  { title: 'Doraemon S06E36', season: 'S6', tag: 'season-early', ep: 'S6E36', color: '#2BA4E0', driveId: '1rO6ANL5Of46GGTJ49uigmGLH03YMjcMJ' },
+  { title: 'Doraemon S06E37', season: 'S6', tag: 'season-early', ep: 'S6E37', color: '#E8413C', driveId: '18zCYBqjGoYqNdvJowV2aP5apb7RU5sk-' },
+  { title: 'Doraemon S06E38', season: 'S6', tag: 'season-early', ep: 'S6E38', color: '#FFD93D', driveId: '1X8w6oj1QKH78ENXJ7XCzt1Skyd1CEnW-' },
+  { title: 'Doraemon S06E39', season: 'S6', tag: 'season-early', ep: 'S6E39', color: '#2BA4E0', driveId: '12bIJuZaLDqYlck0tBnfH6ID6cMeBlpFk' },
+  { title: 'Doraemon S06E40', season: 'S6', tag: 'season-early', ep: 'S6E40', color: '#E8413C', driveId: '1fCFGv7LJ0SAOWWKz5cmaJlgvHC8LAIWY' },
+  { title: 'Doraemon S06E41', season: 'S6', tag: 'season-early', ep: 'S6E41', color: '#FFD93D', driveId: '1F-CJlRFN0mcxObXSNMAIOIMiTjMXrvqO' },
+  { title: 'Doraemon S06E42', season: 'S6', tag: 'season-early', ep: 'S6E42', color: '#2BA4E0', driveId: '1ZzPwc7s5QQNRkW3XZiz3DrjC6USKBoDZ' },
+  { title: 'Doraemon S06E43', season: 'S6', tag: 'season-early', ep: 'S6E43', color: '#E8413C', driveId: '12TL2FOBsKTbuJHykxtvHgv4eamTPkScC' },
+  { title: 'Doraemon S06E44', season: 'S6', tag: 'season-early', ep: 'S6E44', color: '#FFD93D', driveId: '1XOhS4T5TstZPWS-JcWCoqQKtxhZU9c-o' },
+  { title: 'Doraemon S06E45', season: 'S6', tag: 'season-early', ep: 'S6E45', color: '#2BA4E0', driveId: '1gOawZu_xzx4olZOd8l3m_9e5KGBLzMEH' },
+  { title: 'Doraemon S06E46', season: 'S6', tag: 'season-early', ep: 'S6E46', color: '#E8413C', driveId: '1Ntb4Z0fPk_Kw_eNKIfb8k7fNoicD21BX' },
+  { title: 'Doraemon S06E47', season: 'S6', tag: 'season-early', ep: 'S6E47', color: '#FFD93D', driveId: '1zcEGyaRnKqy6lhJJ-_jlER_BvgpWfpvd' },
+  { title: 'Doraemon S06E48', season: 'S6', tag: 'season-early', ep: 'S6E48', color: '#2BA4E0', driveId: '1Y4a_Wk6UF33Tsv3KsT6BfIa6raha-jhU' },
+  { title: 'Doraemon S06E49', season: 'S6', tag: 'season-early', ep: 'S6E49', color: '#E8413C', driveId: '1sDWd0zZD9HHARB9osGBbneixzJiPY4id' },
+  { title: 'Doraemon S06E50', season: 'S6', tag: 'season-early', ep: 'S6E50', color: '#FFD93D', driveId: '1js4ruw1phwrVD4zya7fqFRZszvqTrCBS' },
+  { title: 'Doraemon S06E51', season: 'S6', tag: 'season-early', ep: 'S6E51', color: '#2BA4E0', driveId: '1IW6117A8wKoQYHokT82cwJ_jMSVuqW2y' },
+  { title: 'Doraemon S06E52', season: 'S6', tag: 'season-early', ep: 'S6E52', color: '#E8413C', driveId: '1MtlJ-4nORnNVnb7UKy7IrUWnP4b0mRrP' },
+  // Season 5 (52 episodes)
+  { title: 'Doraemon S05E01', season: 'S5', tag: 'season-early', ep: 'S5E01', color: '#FFD93D', driveId: '1gyWCbysXesZWJhYbkriW0CizZ2X-2vBL' },
+  { title: 'Doraemon S05E02', season: 'S5', tag: 'season-early', ep: 'S5E02', color: '#2BA4E0', driveId: '1sGLIOnCGoIL_xdjuP5z2VbcgWKAdxJda' },
+  { title: 'Doraemon S05E03', season: 'S5', tag: 'season-early', ep: 'S5E03', color: '#E8413C', driveId: '1Chb6i1lBIwpON02gEntyjLeBdOCENdlq' },
+  { title: 'Doraemon S05E04', season: 'S5', tag: 'season-early', ep: 'S5E04', color: '#FFD93D', driveId: '1E-MhLgtTlSGkYsCKFmcz8i0PbCQLW23i' },
+  { title: 'Doraemon S05E05', season: 'S5', tag: 'season-early', ep: 'S5E05', color: '#2BA4E0', driveId: '1T8mpQP7DdKeakofcV9OLoc5S7kwENXgR' },
+  { title: 'Doraemon S05E06', season: 'S5', tag: 'season-early', ep: 'S5E06', color: '#E8413C', driveId: '1-QyH9MvYBblwZF-KZoeL7yuDATA2UVhx' },
+  { title: 'Doraemon S05E07', season: 'S5', tag: 'season-early', ep: 'S5E07', color: '#FFD93D', driveId: '1IO_6j_GaFchi4T8yutiYSieUOsl5v7de' },
+  { title: 'Doraemon S05E08', season: 'S5', tag: 'season-early', ep: 'S5E08', color: '#2BA4E0', driveId: '1H6XuvrN6lZgm5UeVSC75c7WKqv4zX13J' },
+  { title: 'Doraemon S05E09', season: 'S5', tag: 'season-early', ep: 'S5E09', color: '#E8413C', driveId: '1IMlRc60UaHN1vnIaxXSmg1_2g3lH7wCD' },
+  { title: 'Doraemon S05E10', season: 'S5', tag: 'season-early', ep: 'S5E10', color: '#FFD93D', driveId: '1Vsl__DD4L9Rk9_SKX3xwSeQ2A3MzN3m6' },
+  { title: 'Doraemon S05E11', season: 'S5', tag: 'season-early', ep: 'S5E11', color: '#2BA4E0', driveId: '1GfUmmcKZiMHFKJFmPiqnkh_12BWHEDtx' },
+  { title: 'Doraemon S05E12', season: 'S5', tag: 'season-early', ep: 'S5E12', color: '#E8413C', driveId: '1f7nNb9J_jmKZ6G5ZJD7Amcj1lDtjjuRO' },
+  { title: 'Doraemon S05E13', season: 'S5', tag: 'season-early', ep: 'S5E13', color: '#FFD93D', driveId: '1cpgcRulXZbEf7LK_AO1Wz2JibpfBItZR' },
+  { title: 'Doraemon S05E14', season: 'S5', tag: 'season-early', ep: 'S5E14', color: '#2BA4E0', driveId: '1LBueF4wn6_jdLLA_1gtQg-A1QjRGIjbc' },
+  { title: 'Doraemon S05E15', season: 'S5', tag: 'season-early', ep: 'S5E15', color: '#E8413C', driveId: '18R_fgWWrPZtdE53nvvQJiYgKRd6XMkJF' },
+  { title: 'Doraemon S05E16', season: 'S5', tag: 'season-early', ep: 'S5E16', color: '#FFD93D', driveId: '1W3RWt8Nzphw9AHmBAXFe8mX6ozWzJP_N' },
+  { title: 'Doraemon S05E17', season: 'S5', tag: 'season-early', ep: 'S5E17', color: '#2BA4E0', driveId: '13m50a3rOwSqbAAI2esJ3qpOxGK03lT0R' },
+  { title: 'Doraemon S05E18', season: 'S5', tag: 'season-early', ep: 'S5E18', color: '#E8413C', driveId: '1veIWDayXHS9DZegPqhpKbUC45D5KRe_0' },
+  { title: 'Doraemon S05E19', season: 'S5', tag: 'season-early', ep: 'S5E19', color: '#FFD93D', driveId: '1R7WX0SpMfnCPiPnN3ZxIRLbb2r6SGDOY' },
+  { title: 'Doraemon S05E20', season: 'S5', tag: 'season-early', ep: 'S5E20', color: '#2BA4E0', driveId: '1mohYfAybcbIF96LIwe6Ov6SBGsPfBPVo' },
+  { title: 'Doraemon S05E21', season: 'S5', tag: 'season-early', ep: 'S5E21', color: '#E8413C', driveId: '1rVrifdmjMYsLU73ElnMI6ANf4rSql_3n' },
+  { title: 'Doraemon S05E22', season: 'S5', tag: 'season-early', ep: 'S5E22', color: '#FFD93D', driveId: '1EEDJVNi1Dyuhf6pUJpQhNJB-fOL1Dty7' },
+  { title: 'Doraemon S05E23', season: 'S5', tag: 'season-early', ep: 'S5E23', color: '#2BA4E0', driveId: '1w42bQzNYvSyy7mHtzhCFUVMKkWUBYMdF' },
+  { title: 'Doraemon S05E24', season: 'S5', tag: 'season-early', ep: 'S5E24', color: '#E8413C', driveId: '1kd42IPwyQsqFvBXNcYlw9NQ922CFs0Ak' },
+  { title: 'Doraemon S05E25', season: 'S5', tag: 'season-early', ep: 'S5E25', color: '#FFD93D', driveId: '1khRdMVE_CXW_LZhcrlMflqxM0p-k5NPF' },
+  { title: 'Doraemon S05E26', season: 'S5', tag: 'season-early', ep: 'S5E26', color: '#2BA4E0', driveId: '1_1BiK9Dnh9wmYnz8XiqqCKCrvqa6jf43' },
+  { title: 'Doraemon S05E27', season: 'S5', tag: 'season-early', ep: 'S5E27', color: '#E8413C', driveId: '1suClorHFhrm7fY97qY2Yenrai_syZQCS' },
+  { title: 'Doraemon S05E28', season: 'S5', tag: 'season-early', ep: 'S5E28', color: '#FFD93D', driveId: '1q7m7iaBFacCpDRSkf9oSd-XUYvZy0Y5s' },
+  { title: 'Doraemon S05E29', season: 'S5', tag: 'season-early', ep: 'S5E29', color: '#2BA4E0', driveId: '1BttS2fIYlnHnwSaj3h8_6E-sPoSync7R' },
+  { title: 'Doraemon S05E30', season: 'S5', tag: 'season-early', ep: 'S5E30', color: '#E8413C', driveId: '1ewPBEazrUqhjm-WAFbseBPpqyIaQkVr3' },
+  { title: 'Doraemon S05E31', season: 'S5', tag: 'season-early', ep: 'S5E31', color: '#FFD93D', driveId: '1sdMYpxzCPCtk5k6hYCP0b45XfypJ0rgi' },
+  { title: 'Doraemon S05E32', season: 'S5', tag: 'season-early', ep: 'S5E32', color: '#2BA4E0', driveId: '1opO7S7O9TsfRa6DeDQgxNWp7bWSW1PYd' },
+  { title: 'Doraemon S05E33', season: 'S5', tag: 'season-early', ep: 'S5E33', color: '#E8413C', driveId: '1HKe9fhgsuf5PIlzOg1sWsShjCO6idmEU' },
+  { title: 'Doraemon S05E34', season: 'S5', tag: 'season-early', ep: 'S5E34', color: '#FFD93D', driveId: '13oeFYWm3kfGIrdeX5hJRGy0hrScFw3Xe' },
+  { title: 'Doraemon S05E35', season: 'S5', tag: 'season-early', ep: 'S5E35', color: '#2BA4E0', driveId: '1CpVVdFoDo20FumrZL-CGcoyAS9KZF2gI' },
+  { title: 'Doraemon S05E36', season: 'S5', tag: 'season-early', ep: 'S5E36', color: '#E8413C', driveId: '1a2bOB5kvYYcQPSRh57xqvrVsCbDWFCiv' },
+  { title: 'Doraemon S05E37', season: 'S5', tag: 'season-early', ep: 'S5E37', color: '#FFD93D', driveId: '1d0Q8FtFI_4sQ_vU6wDB5Z1QTTO0HKtp3' },
+  { title: 'Doraemon S05E38', season: 'S5', tag: 'season-early', ep: 'S5E38', color: '#2BA4E0', driveId: '1oRH9E_jrKPLBAPE_xmo9Jy7Xbj0IeVZR' },
+  { title: 'Doraemon S05E39', season: 'S5', tag: 'season-early', ep: 'S5E39', color: '#E8413C', driveId: '1yRTMLw_rf4jasgpshL5qRt09qL9oTouq' },
+  { title: 'Doraemon S05E40', season: 'S5', tag: 'season-early', ep: 'S5E40', color: '#FFD93D', driveId: '17G-oi5o36DkgVghgR6i6AFj4IGpTJWBD' },
+  { title: 'Doraemon S05E41', season: 'S5', tag: 'season-early', ep: 'S5E41', color: '#2BA4E0', driveId: '1KeLAFrktYYz5VD9VNQLq9FjpL7uzz52U' },
+  { title: 'Doraemon S05E42', season: 'S5', tag: 'season-early', ep: 'S5E42', color: '#E8413C', driveId: '142kvSbNAwTJtQ_IxNHnLf2hgH6kTbIbG' },
+  { title: 'Doraemon S05E43', season: 'S5', tag: 'season-early', ep: 'S5E43', color: '#FFD93D', driveId: '1D67FQ5P5tN2bmZA26hjlZymj7K_ruvp0' },
+  { title: 'Doraemon S05E44', season: 'S5', tag: 'season-early', ep: 'S5E44', color: '#2BA4E0', driveId: '1NzXfIodjuW5DGcc266hjMcHGUm6lyboe' },
+  { title: 'Doraemon S05E45', season: 'S5', tag: 'season-early', ep: 'S5E45', color: '#E8413C', driveId: '1ZS1jLP2djRAsj0K408SSurJkYIXlsWrI' },
+  { title: 'Doraemon S05E46', season: 'S5', tag: 'season-early', ep: 'S5E46', color: '#FFD93D', driveId: '1ROy9u2VSJ2PtMGrs7gp3awpDESMFEeV-' },
+  { title: 'Doraemon S05E47', season: 'S5', tag: 'season-early', ep: 'S5E47', color: '#2BA4E0', driveId: '13Qhpxdh3yYAlBmXqS1hGHa4BcrxhxUic' },
+  { title: 'Doraemon S05E48', season: 'S5', tag: 'season-early', ep: 'S5E48', color: '#E8413C', driveId: '1UCxiEmqHTMgweND56nXhzT-I08_Dp5gE' },
+  { title: 'Doraemon S05E49', season: 'S5', tag: 'season-early', ep: 'S5E49', color: '#FFD93D', driveId: '1Lf282ogPAa7g0v1CjSskKrsUdprDMmOh' },
+  { title: 'Doraemon S05E50', season: 'S5', tag: 'season-early', ep: 'S5E50', color: '#2BA4E0', driveId: '1jcsYe4aY_aS5wYjA7oz-Y2iQFoLIPK93' },
+  { title: 'Doraemon S05E51', season: 'S5', tag: 'season-early', ep: 'S5E51', color: '#E8413C', driveId: '1HomEKG5ILXzBPHVo73uvTVgR3cj2y0uO' },
+  { title: 'Doraemon S05E52', season: 'S5', tag: 'season-early', ep: 'S5E52', color: '#FFD93D', driveId: '1ISuFzW2o3hIIPUcmWLPszDVlgq1k53qT' },
+  // Season 4 (52 episodes)
+  { title: 'Doraemon S04E01', season: 'S4', tag: 'season-early', ep: 'S4E01', color: '#2BA4E0', driveId: '1u_ZS5-8CyfaXDIPKv-QH-IrSSqeKhpMy' },
+  { title: 'Doraemon S04E02', season: 'S4', tag: 'season-early', ep: 'S4E02', color: '#E8413C', driveId: '12_9pesqcLG-93iDiWd4STQVKYvtbhHX2' },
+  { title: 'Doraemon S04E03', season: 'S4', tag: 'season-early', ep: 'S4E03', color: '#FFD93D', driveId: '1WrWd6k4BU4vSwSxSTFoq8zOI_7kFANrq' },
+  { title: 'Doraemon S04E04', season: 'S4', tag: 'season-early', ep: 'S4E04', color: '#2BA4E0', driveId: '1JpyN5cKAZWbPfz-VZUS0pbFRDK1kSGHQ' },
+  { title: 'Doraemon S04E05', season: 'S4', tag: 'season-early', ep: 'S4E05', color: '#E8413C', driveId: '1jnc4g0NUgYyNqjqpYleoMHxtGpqyLLXN' },
+  { title: 'Doraemon S04E06', season: 'S4', tag: 'season-early', ep: 'S4E06', color: '#FFD93D', driveId: '15nqSRtBY1aMYE-QAvXSTr0LIz1u-40_7' },
+  { title: 'Doraemon S04E07', season: 'S4', tag: 'season-early', ep: 'S4E07', color: '#2BA4E0', driveId: '1Dv6yRfAYhtqoiAd8QM_MaSjS3MxHzNnd' },
+  { title: 'Doraemon S04E08', season: 'S4', tag: 'season-early', ep: 'S4E08', color: '#E8413C', driveId: '1lcfmN73cDZLbh_3ovyUKgpNfIrLmymW9' },
+  { title: 'Doraemon S04E09', season: 'S4', tag: 'season-early', ep: 'S4E09', color: '#FFD93D', driveId: '1hOUO3_lba9HDSPc6cATnywbVK-igT_Co' },
+  { title: 'Doraemon S04E10', season: 'S4', tag: 'season-early', ep: 'S4E10', color: '#2BA4E0', driveId: '1wDh0yzxzCQvkWzHNLnRQoK_XhIoOBx2I' },
+  { title: 'Doraemon S04E11', season: 'S4', tag: 'season-early', ep: 'S4E11', color: '#E8413C', driveId: '1284iModXhV279cbei4L9HGvWJed7SkQh' },
+  { title: 'Doraemon S04E12', season: 'S4', tag: 'season-early', ep: 'S4E12', color: '#FFD93D', driveId: '15htGdUCzeUkw3MAn5nY1Qp58Jd9XvLij' },
+  { title: 'Doraemon S04E13', season: 'S4', tag: 'season-early', ep: 'S4E13', color: '#2BA4E0', driveId: '1m4yvSgZCsU1nFBMGFPoh1OsOShlP3z5i' },
+  { title: 'Doraemon S04E14', season: 'S4', tag: 'season-early', ep: 'S4E14', color: '#E8413C', driveId: '11mamLkjlHb17TJgZHxnahdvSb1pTHnUN' },
+  { title: 'Doraemon S04E15', season: 'S4', tag: 'season-early', ep: 'S4E15', color: '#FFD93D', driveId: '1hWPfAnduABZvZ3K1UXsebdLprS96zqSS' },
+  { title: 'Doraemon S04E16', season: 'S4', tag: 'season-early', ep: 'S4E16', color: '#2BA4E0', driveId: '1f2Xq2GXIwEeH_oAvcTMrUW-FOKU_UsUU' },
+  { title: 'Doraemon S04E17', season: 'S4', tag: 'season-early', ep: 'S4E17', color: '#E8413C', driveId: '1EhB_ypBcVfnzsNn1hXE__SOheMXq6spj' },
+  { title: 'Doraemon S04E18', season: 'S4', tag: 'season-early', ep: 'S4E18', color: '#FFD93D', driveId: '1vfyBwyjpEjItRqgXPL1DjR5qKpE8gjEt' },
+  { title: 'Doraemon S04E19', season: 'S4', tag: 'season-early', ep: 'S4E19', color: '#2BA4E0', driveId: '161rDl4wdDB60svACf9FYik15rSXyDcXX' },
+  { title: 'Doraemon S04E20', season: 'S4', tag: 'season-early', ep: 'S4E20', color: '#E8413C', driveId: '1apg_p_RFADrii8Ra_8YcO4E5tkL7hZfm' },
+  { title: 'Doraemon S04E21', season: 'S4', tag: 'season-early', ep: 'S4E21', color: '#FFD93D', driveId: '1GpfLU8mwxNIhaIYF2-yw33mbDxCQFINT' },
+  { title: 'Doraemon S04E22', season: 'S4', tag: 'season-early', ep: 'S4E22', color: '#2BA4E0', driveId: '11qUKMYLzQwh3eOTk1PxZAvnXrqn419t7' },
+  { title: 'Doraemon S04E23', season: 'S4', tag: 'season-early', ep: 'S4E23', color: '#E8413C', driveId: '1IjW1eAT51LL9hxo7P4WkTldbqrm160pP' },
+  { title: 'Doraemon S04E24', season: 'S4', tag: 'season-early', ep: 'S4E24', color: '#FFD93D', driveId: '1ktglnzyTZy9ZQ832IJh49bVG4ICpf8JS' },
+  { title: 'Doraemon S04E25', season: 'S4', tag: 'season-early', ep: 'S4E25', color: '#2BA4E0', driveId: '17J2mqayB-bfNIPod-ymCbErIB9HR2lXM' },
+  { title: 'Doraemon S04E26', season: 'S4', tag: 'season-early', ep: 'S4E26', color: '#E8413C', driveId: '18MPQeEvYjzWPOVLYlBKs35x8ubuaY6o_' },
+  { title: 'Doraemon S04E27', season: 'S4', tag: 'season-early', ep: 'S4E27', color: '#FFD93D', driveId: '1fvAByIbNhokipqaFVxO4NmEQMJS6Z9Q_' },
+  { title: 'Doraemon S04E28', season: 'S4', tag: 'season-early', ep: 'S4E28', color: '#2BA4E0', driveId: '1BkMH-ToXQT5kzd9-eSvCH9byYhkhsy4T' },
+  { title: 'Doraemon S04E29', season: 'S4', tag: 'season-early', ep: 'S4E29', color: '#E8413C', driveId: '1Ykpmu1EOPuhrgeaJVUPkrEDXymoC8mFJ' },
+  { title: 'Doraemon S04E30', season: 'S4', tag: 'season-early', ep: 'S4E30', color: '#FFD93D', driveId: '1GeSZNqzarKr_3NVEksTtFBRTifFnnX0_' },
+  { title: 'Doraemon S04E31', season: 'S4', tag: 'season-early', ep: 'S4E31', color: '#2BA4E0', driveId: '168SP8JULt5gGTB_cfWIWESoyut9DQqA5' },
+  { title: 'Doraemon S04E32', season: 'S4', tag: 'season-early', ep: 'S4E32', color: '#E8413C', driveId: '1rbvkgml1hiCM5y6gQcdn7DCldOpM9cmt' },
+  { title: 'Doraemon S04E33', season: 'S4', tag: 'season-early', ep: 'S4E33', color: '#FFD93D', driveId: '1HhnjDyYOjxeRFw2m6Uo_Ow4tlje99m6S' },
+  { title: 'Doraemon S04E34', season: 'S4', tag: 'season-early', ep: 'S4E34', color: '#2BA4E0', driveId: '1kpHxGMkM-hi0vQUiof9CWxtBKmRZ0zmJ' },
+  { title: 'Doraemon S04E35', season: 'S4', tag: 'season-early', ep: 'S4E35', color: '#E8413C', driveId: '1hJ6_Jzt1oT3RHV7FB3sd1g-Nxo5QJxBd' },
+  { title: 'Doraemon S04E36', season: 'S4', tag: 'season-early', ep: 'S4E36', color: '#FFD93D', driveId: '181SSd68blWegxgtzlSlKezY5nDOpcsrU' },
+  { title: 'Doraemon S04E37', season: 'S4', tag: 'season-early', ep: 'S4E37', color: '#2BA4E0', driveId: '1PdJvYKBjdqk5fGt_kGvpPGWJvGR5bQRZ' },
+  { title: 'Doraemon S04E38', season: 'S4', tag: 'season-early', ep: 'S4E38', color: '#E8413C', driveId: '1Sa62xRcB_aoYQkjX3VNV5EwdALkIprrz' },
+  { title: 'Doraemon S04E39', season: 'S4', tag: 'season-early', ep: 'S4E39', color: '#FFD93D', driveId: '12veJxYn26OM70IKUCGgKYd2MoUI6O1xL' },
+  { title: 'Doraemon S04E40', season: 'S4', tag: 'season-early', ep: 'S4E40', color: '#2BA4E0', driveId: '1Dkw5VJaLsJEXZgWpIYd-BXaeYc2MZiyc' },
+  { title: 'Doraemon S04E41', season: 'S4', tag: 'season-early', ep: 'S4E41', color: '#E8413C', driveId: '1aSejfCyLCZPSap2qvKIJuC7Kg9Fyr2kH' },
+  { title: 'Doraemon S04E42', season: 'S4', tag: 'season-early', ep: 'S4E42', color: '#FFD93D', driveId: '12BxPfc12kcf1110LsrVCG1oYXnxyyjw0' },
+  { title: 'Doraemon S04E43', season: 'S4', tag: 'season-early', ep: 'S4E43', color: '#2BA4E0', driveId: '1si6lkS26EDW4oFQDdN2pmJtRR2p92V43' },
+  { title: 'Doraemon S04E44', season: 'S4', tag: 'season-early', ep: 'S4E44', color: '#E8413C', driveId: '17L67lH-qcAk0VtDviMu-SiEoSC2bVKqp' },
+  { title: 'Doraemon S04E45', season: 'S4', tag: 'season-early', ep: 'S4E45', color: '#FFD93D', driveId: '18t5d3YR1IZnw6p_BNPQ0Y5bdZMlKKp9A' },
+  { title: 'Doraemon S04E46', season: 'S4', tag: 'season-early', ep: 'S4E46', color: '#2BA4E0', driveId: '1fs6FgCHqjJDHlFEFFLSsdNsQqZxp5rVC' },
+  { title: 'Doraemon S04E47', season: 'S4', tag: 'season-early', ep: 'S4E47', color: '#E8413C', driveId: '172RtRWdtuWo-Antvy_8dj1xauYtqL037' },
+  { title: 'Doraemon S04E48', season: 'S4', tag: 'season-early', ep: 'S4E48', color: '#FFD93D', driveId: '1UwLfPjPFolMbPgHh50OYRo0JPAfojHrv' },
+  { title: 'Doraemon S04E49', season: 'S4', tag: 'season-early', ep: 'S4E49', color: '#2BA4E0', driveId: '1DqQsLrL2okIAW1Ar4VhFJHJ655KyBsR7' },
+  { title: 'Doraemon S04E50', season: 'S4', tag: 'season-early', ep: 'S4E50', color: '#E8413C', driveId: '1L5TWGsRLSMWXodi6XRBJnd2l4B56tZbU' },
+  { title: 'Doraemon S04E51', season: 'S4', tag: 'season-early', ep: 'S4E51', color: '#FFD93D', driveId: '11uT7q91kcrsoNYTlwm-Ug12q8Jn3W4in' },
+  { title: 'Doraemon S04E52', season: 'S4', tag: 'season-early', ep: 'S4E52', color: '#2BA4E0', driveId: '1Cb1zk-MTq2nZkGvR8YwqWwk26UU_51Bu' },
+  // Season 3 (52 episodes)
+  { title: 'Doraemon S03E01', season: 'S3', tag: 'season-early', ep: 'S3E01', color: '#E8413C', driveId: '14UJEXsD5aYlAyucVUdWuz-Ol3kREe-cz' },
+  { title: 'Doraemon S03E02', season: 'S3', tag: 'season-early', ep: 'S3E02', color: '#FFD93D', driveId: '1TYHvdTN40sSYd0FoBhACjmkDEG2r1Ns7' },
+  { title: 'Doraemon S03E03', season: 'S3', tag: 'season-early', ep: 'S3E03', color: '#2BA4E0', driveId: '1zILE24tNy0aqydLRx40LCdtZugR-ysGg' },
+  { title: 'Doraemon S03E04', season: 'S3', tag: 'season-early', ep: 'S3E04', color: '#E8413C', driveId: '1hHZYRPsODNtSeb-MQ9aoKIJU7sojoh68' },
+  { title: 'Doraemon S03E05', season: 'S3', tag: 'season-early', ep: 'S3E05', color: '#FFD93D', driveId: '1zIXmyK8y1fFPMbBodRxfbFgIeIzQkZzB' },
+  { title: 'Doraemon S03E06', season: 'S3', tag: 'season-early', ep: 'S3E06', color: '#2BA4E0', driveId: '16rx3Q6grOxZRrMt9dNgyZCmJGpCbZGPC' },
+  { title: 'Doraemon S03E07', season: 'S3', tag: 'season-early', ep: 'S3E07', color: '#E8413C', driveId: '1h_bUnv9Y9OI432MT5jn_Xrqut41ifHpq' },
+  { title: 'Doraemon S03E08', season: 'S3', tag: 'season-early', ep: 'S3E08', color: '#FFD93D', driveId: '1EswxXBGDlmTNk1-x0JUsxY99tE1xA0d6' },
+  { title: 'Doraemon S03E09', season: 'S3', tag: 'season-early', ep: 'S3E09', color: '#2BA4E0', driveId: '1zLBriQxVrEjV3e5ysjsIGGU46xMjkMc8' },
+  { title: 'Doraemon S03E10', season: 'S3', tag: 'season-early', ep: 'S3E10', color: '#E8413C', driveId: '1fib2Tmi63R248KxhfVB8m_v7x0lPHUkL' },
+  { title: 'Doraemon S03E11', season: 'S3', tag: 'season-early', ep: 'S3E11', color: '#FFD93D', driveId: '1cyYg7-fsmA9WgRYeTxc07wXHNiCZ3pVl' },
+  { title: 'Doraemon S03E12', season: 'S3', tag: 'season-early', ep: 'S3E12', color: '#2BA4E0', driveId: '1PxwC1JmcqPIRoLh_6-6Gg-iuX65ok0pH' },
+  { title: 'Doraemon S03E13', season: 'S3', tag: 'season-early', ep: 'S3E13', color: '#E8413C', driveId: '1Pf3hHZMjN3eueUgeHYnA_n6tP3NpjGbc' },
+  { title: 'Doraemon S03E14', season: 'S3', tag: 'season-early', ep: 'S3E14', color: '#FFD93D', driveId: '1xJk_f17NRB54iIBhVz-oie_rwv0c2XnV' },
+  { title: 'Doraemon S03E15', season: 'S3', tag: 'season-early', ep: 'S3E15', color: '#2BA4E0', driveId: '19IK-s3iWXiVlBoL2nxZz1O_5f9RPlnrd' },
+  { title: 'Doraemon S03E16', season: 'S3', tag: 'season-early', ep: 'S3E16', color: '#E8413C', driveId: '1oMF3B8OVLq7wI0pEGjbJWJgeANDOAIKN' },
+  { title: 'Doraemon S03E17', season: 'S3', tag: 'season-early', ep: 'S3E17', color: '#FFD93D', driveId: '10yLor4JJPSJuLtqLKLR0VOn6poXR9-PM' },
+  { title: 'Doraemon S03E18', season: 'S3', tag: 'season-early', ep: 'S3E18', color: '#2BA4E0', driveId: '1l1u2geaxgEykI0R9580i9udtC1zWTL0G' },
+  { title: 'Doraemon S03E19', season: 'S3', tag: 'season-early', ep: 'S3E19', color: '#E8413C', driveId: '1fTm5eN0AgCLLxJ3onnHbNEtp57k9G0by' },
+  { title: 'Doraemon S03E20', season: 'S3', tag: 'season-early', ep: 'S3E20', color: '#FFD93D', driveId: '1Gzx4oLtSNT8qsZquQiaAuqH_1KMKoqrj' },
+  { title: 'Doraemon S03E21', season: 'S3', tag: 'season-early', ep: 'S3E21', color: '#2BA4E0', driveId: '1AwGbS4HEuO6GTAHH8TCK6mEAmgaEgji0' },
+  { title: 'Doraemon S03E22', season: 'S3', tag: 'season-early', ep: 'S3E22', color: '#E8413C', driveId: '1fFIp5XQBDO_8i3FVlDerMk0Zx2uiLm1K' },
+  { title: 'Doraemon S03E23', season: 'S3', tag: 'season-early', ep: 'S3E23', color: '#FFD93D', driveId: '1AubY3mG0HqzLyeygnHfoWEzPCnK0KiIW' },
+  { title: 'Doraemon S03E24', season: 'S3', tag: 'season-early', ep: 'S3E24', color: '#2BA4E0', driveId: '1zm92B1J9AGn_k1bYpuD6ulvewvUXHnJY' },
+  { title: 'Doraemon S03E25', season: 'S3', tag: 'season-early', ep: 'S3E25', color: '#E8413C', driveId: '1EG3M1xstS9ZuyJ_I0T3tx9ZkIzLKPiRt' },
+  { title: 'Doraemon S03E26', season: 'S3', tag: 'season-early', ep: 'S3E26', color: '#FFD93D', driveId: '1F9-mc_XrnluA2TUKnWVGGvr_qn1HOQYq' },
+  { title: 'Doraemon S03E27', season: 'S3', tag: 'season-early', ep: 'S3E27', color: '#2BA4E0', driveId: '1TP0KvbMRhctKlQ63eGNGKbu-PW6OidTu' },
+  { title: 'Doraemon S03E28', season: 'S3', tag: 'season-early', ep: 'S3E28', color: '#E8413C', driveId: '1aIgxyX2gMMSznuwfwiUUmdDWZEuWz8gm' },
+  { title: 'Doraemon S03E29', season: 'S3', tag: 'season-early', ep: 'S3E29', color: '#FFD93D', driveId: '1dNlDlJLBXVmxj99ZoeVx1Y_HYmhFshCc' },
+  { title: 'Doraemon S03E30', season: 'S3', tag: 'season-early', ep: 'S3E30', color: '#2BA4E0', driveId: '12jhCrkGto09hwfBSau6rtYOrEq77phne' },
+  { title: 'Doraemon S03E31', season: 'S3', tag: 'season-early', ep: 'S3E31', color: '#E8413C', driveId: '1h3nd7rcHZPyLXEe0rTEnSt3dVFQGGxcS' },
+  { title: 'Doraemon S03E32', season: 'S3', tag: 'season-early', ep: 'S3E32', color: '#FFD93D', driveId: '1TO6cxIXOyT4q5pi8Gu3N9UmnxqDIKcWf' },
+  { title: 'Doraemon S03E33', season: 'S3', tag: 'season-early', ep: 'S3E33', color: '#2BA4E0', driveId: '1FMVmPnkz2A7wOpU8B0YkjlH259yKVhEG' },
+  { title: 'Doraemon S03E34', season: 'S3', tag: 'season-early', ep: 'S3E34', color: '#E8413C', driveId: '1Nhkz0ttBBk8RCd4D-FqMehd6g2xTgiYT' },
+  { title: 'Doraemon S03E35', season: 'S3', tag: 'season-early', ep: 'S3E35', color: '#FFD93D', driveId: '1fQrYPDwuJ0kQeaP1x6bTgknOeSdZVaSh' },
+  { title: 'Doraemon S03E36', season: 'S3', tag: 'season-early', ep: 'S3E36', color: '#2BA4E0', driveId: '1RDI6UyHDnaoGgYTHwnrTGOOFUu99m9sb' },
+  { title: 'Doraemon S03E37', season: 'S3', tag: 'season-early', ep: 'S3E37', color: '#E8413C', driveId: '1SnXktWLmm9FdkKKMaAc3yo8R7_V2v5Dp' },
+  { title: 'Doraemon S03E38', season: 'S3', tag: 'season-early', ep: 'S3E38', color: '#FFD93D', driveId: '13wWYTqEsxrgtaigVx9tF-du_H1Aht1CM' },
+  { title: 'Doraemon S03E39', season: 'S3', tag: 'season-early', ep: 'S3E39', color: '#2BA4E0', driveId: '14SNjB5Seum9tYqqDOfi0mJw9r5Gz-sNt' },
+  { title: 'Doraemon S03E40', season: 'S3', tag: 'season-early', ep: 'S3E40', color: '#E8413C', driveId: '1dPXjcZN3TlAicXRWlrDYARfC4lD-V9jh' },
+  { title: 'Doraemon S03E41', season: 'S3', tag: 'season-early', ep: 'S3E41', color: '#FFD93D', driveId: '1G3PGELfKNjsZgrsJw2rL6ICQSXx3Orgx' },
+  { title: 'Doraemon S03E42', season: 'S3', tag: 'season-early', ep: 'S3E42', color: '#2BA4E0', driveId: '1vQfbzBf5Hld60vSuLd1vMw5BHUIItebY' },
+  { title: 'Doraemon S03E43', season: 'S3', tag: 'season-early', ep: 'S3E43', color: '#E8413C', driveId: '1Nj3Sfx8yth1FB2pvnUStii_LARrS7gf9' },
+  { title: 'Doraemon S03E44', season: 'S3', tag: 'season-early', ep: 'S3E44', color: '#FFD93D', driveId: '1z4lADFTgF4oTgA3LNv8s2yaGyeiElY9r' },
+  { title: 'Doraemon S03E45', season: 'S3', tag: 'season-early', ep: 'S3E45', color: '#2BA4E0', driveId: '1_52Wf9d8XFlUFnTHTYVEUq74Vc6CdcYb' },
+  { title: 'Doraemon S03E46', season: 'S3', tag: 'season-early', ep: 'S3E46', color: '#E8413C', driveId: '1Gg23kQQwh1Lyc30SDa_55hpv5by12t4G' },
+  { title: 'Doraemon S03E47', season: 'S3', tag: 'season-early', ep: 'S3E47', color: '#FFD93D', driveId: '1GxZyX8Hvt6bXebZlqhiAUMF67aDlfzqx' },
+  { title: 'Doraemon S03E48', season: 'S3', tag: 'season-early', ep: 'S3E48', color: '#2BA4E0', driveId: '1GBYzlNGiry7oXr5vDOweRtqJh8srFr3C' },
+  { title: 'Doraemon S03E49', season: 'S3', tag: 'season-early', ep: 'S3E49', color: '#E8413C', driveId: '1s7CkgotXhL0ekl9CzvrSGvbJazE2Q1l1' },
+  { title: 'Doraemon S03E50', season: 'S3', tag: 'season-early', ep: 'S3E50', color: '#FFD93D', driveId: '1ZwfWocXogaoOSx_okOxaglEhc_7hZX9r' },
+  { title: 'Doraemon S03E51', season: 'S3', tag: 'season-early', ep: 'S3E51', color: '#2BA4E0', driveId: '1iew5I4Fc51qKGTIdfO4ZlQg5qaNd45Xd' },
+  { title: 'Doraemon S03E52', season: 'S3', tag: 'season-early', ep: 'S3E52', color: '#E8413C', driveId: '1dzqj8L3uM0w93q0TCOEHNQXD8MfSwgd6' },
+  // Season 2 (51 episodes)
+  { title: 'Doraemon S02E01', season: 'S2', tag: 'season-early', ep: 'S2E01', color: '#FFD93D', driveId: '1iKyG4JXlncywLhn--nLOaM6cH-hnp604' },
+  { title: 'Doraemon S02E02', season: 'S2', tag: 'season-early', ep: 'S2E02', color: '#2BA4E0', driveId: '1cxTaQpK8TypGfRNUY-APxXvQdFtnSE6m' },
+  { title: 'Doraemon S02E03', season: 'S2', tag: 'season-early', ep: 'S2E03', color: '#E8413C', driveId: '1Wy8IuSiehsXAeox59TZ8FCG7yzsFwCyI' },
+  { title: 'Doraemon S02E04', season: 'S2', tag: 'season-early', ep: 'S2E04', color: '#FFD93D', driveId: '1808LCAw4hun7eUAjrmVp-ehZJlfrRGGD' },
+  { title: 'Doraemon S02E05', season: 'S2', tag: 'season-early', ep: 'S2E05', color: '#2BA4E0', driveId: '1N-c-4MQpf27WLqlEF2JIHq9AW0lxDHQs' },
+  { title: 'Doraemon S02E06', season: 'S2', tag: 'season-early', ep: 'S2E06', color: '#E8413C', driveId: '1i4LkidvkksYLTGKKXtc3kTsqk3boZLD4' },
+  { title: 'Doraemon S02E07', season: 'S2', tag: 'season-early', ep: 'S2E07', color: '#FFD93D', driveId: '1QlnFu6WrcNJkLwMWhNt5hrlrcF6tzajt' },
+  { title: 'Doraemon S02E08', season: 'S2', tag: 'season-early', ep: 'S2E08', color: '#2BA4E0', driveId: '1TyrtiVLLLC746WT5erGSelr1_PVDT8kj' },
+  { title: 'Doraemon S02E09', season: 'S2', tag: 'season-early', ep: 'S2E09', color: '#E8413C', driveId: '1hQ83kEBZfFpsnVKYXkIYcXjouXnemDQ3' },
+  { title: 'Doraemon S02E10', season: 'S2', tag: 'season-early', ep: 'S2E10', color: '#FFD93D', driveId: '1_RnjmmVG363GkjyxgYG80ofalusPwPwZ' },
+  { title: 'Doraemon S02E11', season: 'S2', tag: 'season-early', ep: 'S2E11', color: '#2BA4E0', driveId: '17B4lf_rT2TGKO1gHGtY5BwAahN1-wRTK' },
+  { title: 'Doraemon S02E12', season: 'S2', tag: 'season-early', ep: 'S2E12', color: '#E8413C', driveId: '1Cql_FMsCyRClvff1JrDpSjzKLutUoSgM' },
+  { title: 'Doraemon S02E13', season: 'S2', tag: 'season-early', ep: 'S2E13', color: '#FFD93D', driveId: '1J2noWKXVDOoy-tmiKU78m7dMEdpXgbGN' },
+  { title: 'Doraemon S02E14', season: 'S2', tag: 'season-early', ep: 'S2E14', color: '#2BA4E0', driveId: '1JtbTP-b_PJj1lPjmWb4S6-gyOEEkBnAD' },
+  { title: 'Doraemon S02E15', season: 'S2', tag: 'season-early', ep: 'S2E15', color: '#E8413C', driveId: '1ACsWVRkMunQ6BLv0VO7egQWyvyg02yzX' },
+  { title: 'Doraemon S02E16', season: 'S2', tag: 'season-early', ep: 'S2E16', color: '#FFD93D', driveId: '1UNUdUfj1gbEA8dzhiz6wMdK_p3-BH-nO' },
+  { title: 'Doraemon S02E17', season: 'S2', tag: 'season-early', ep: 'S2E17', color: '#2BA4E0', driveId: '1Bt6HCjzJgFa5yjggZi9rQeoY_0YGnT2e' },
+  { title: 'Doraemon S02E18', season: 'S2', tag: 'season-early', ep: 'S2E18', color: '#E8413C', driveId: '10weUgMub9uopxPtsf8ldT6JNOYjfHXY2' },
+  { title: 'Doraemon S02E19', season: 'S2', tag: 'season-early', ep: 'S2E19', color: '#FFD93D', driveId: '1tu0NiM0tativVP1zzVq1brIYrCpzrdnh' },
+  { title: 'Doraemon S02E20', season: 'S2', tag: 'season-early', ep: 'S2E20', color: '#2BA4E0', driveId: '1KtQzTlsXi4AcWLcm7f6j5PkU5BGlPsdT' },
+  { title: 'Doraemon S02E21', season: 'S2', tag: 'season-early', ep: 'S2E21', color: '#E8413C', driveId: '13OaeDC-CH0vIzI_X5ge6gjpgBglxwiep' },
+  { title: 'Doraemon S02E22', season: 'S2', tag: 'season-early', ep: 'S2E22', color: '#FFD93D', driveId: '1ow7X2x_Z2C15DPaP7pIjSbDnHkemmvN2' },
+  { title: 'Doraemon S02E23', season: 'S2', tag: 'season-early', ep: 'S2E23', color: '#2BA4E0', driveId: '1qBxHyDS02AteW-zVD8DFgS_JSwuM3Omz' },
+  { title: 'Doraemon S02E24', season: 'S2', tag: 'season-early', ep: 'S2E24', color: '#E8413C', driveId: '1rNMwVCnEudrF7PbnEmA90MJoC5Zz5WZA' },
+  { title: 'Doraemon S02E25', season: 'S2', tag: 'season-early', ep: 'S2E25', color: '#FFD93D', driveId: '1bv7kHEbU2rQ0x45JwNrV79VoPwZ8A41w' },
+  { title: 'Doraemon S02E26', season: 'S2', tag: 'season-early', ep: 'S2E26', color: '#2BA4E0', driveId: '1Na0kD8hX4BQnFjhd1ooogLCcKQEmBjRG' },
+  { title: 'Doraemon S02E27', season: 'S2', tag: 'season-early', ep: 'S2E27', color: '#E8413C', driveId: '1eSgkNr1rCFqdIEy-aJuKjpFbRCYJ7cQ4' },
+  { title: 'Doraemon S02E28', season: 'S2', tag: 'season-early', ep: 'S2E28', color: '#FFD93D', driveId: '1QQz9V_1CBSPT2MHoEAQTEa7qvSawFNMZ' },
+  { title: 'Doraemon S02E29', season: 'S2', tag: 'season-early', ep: 'S2E29', color: '#2BA4E0', driveId: '1I9q9OkGt_yz7UnkFX1upng9RO-6XgPhE' },
+  { title: 'Doraemon S02E30', season: 'S2', tag: 'season-early', ep: 'S2E30', color: '#E8413C', driveId: '1H6UyyfzpgIEo2v7kgW6dRUyZ4li3Fd_x' },
+  { title: 'Doraemon S02E31', season: 'S2', tag: 'season-early', ep: 'S2E31', color: '#FFD93D', driveId: '1CyrIM0OypOT-GIaAOLwsJZgB4Gdsh--0' },
+  { title: 'Doraemon S02E32', season: 'S2', tag: 'season-early', ep: 'S2E32', color: '#2BA4E0', driveId: '1-ukgSqlYHvV3CtldtM6ugNgIb76PUKy8' },
+  { title: 'Doraemon S02E33', season: 'S2', tag: 'season-early', ep: 'S2E33', color: '#E8413C', driveId: '1c0IpjafN4XWsv7nHaOcUSRiyI8sFFCbN' },
+  { title: 'Doraemon S02E34', season: 'S2', tag: 'season-early', ep: 'S2E34', color: '#FFD93D', driveId: '1q3RorbUiWJVe1w6WABBFoTbGb0aVr8cE' },
+  { title: 'Doraemon S02E35', season: 'S2', tag: 'season-early', ep: 'S2E35', color: '#2BA4E0', driveId: '1vKrRiGojc1LGkzAtLonJXBfykMh4SYTR' },
+  { title: 'Doraemon S02E36', season: 'S2', tag: 'season-early', ep: 'S2E36', color: '#E8413C', driveId: '1WGzMtrj1UkHEx7EnFpbtlnBtDmYaEWKU' },
+  { title: 'Doraemon S02E37', season: 'S2', tag: 'season-early', ep: 'S2E37', color: '#FFD93D', driveId: '1_WuSmyj3NLYHGKs6qrj0m8u6l6iLjQmB' },
+  { title: 'Doraemon S02E38', season: 'S2', tag: 'season-early', ep: 'S2E38', color: '#2BA4E0', driveId: '1e4fvkeiRccjASePUygh9-P62VuDAhAlG' },
+  { title: 'Doraemon S02E39', season: 'S2', tag: 'season-early', ep: 'S2E39', color: '#E8413C', driveId: '1uEUIW4eb7lzTOuYurZsSzbbLX2N8rxD7' },
+  { title: 'Doraemon S02E40', season: 'S2', tag: 'season-early', ep: 'S2E40', color: '#FFD93D', driveId: '18E6FYWf8HKTD8X9qD5IJmszeldKVVco0' },
+  { title: 'Doraemon S02E41', season: 'S2', tag: 'season-early', ep: 'S2E41', color: '#2BA4E0', driveId: '11ghNcraNfPS3hWHEu4RAbMOxh4CmoKWb' },
+  { title: 'Doraemon S02E42', season: 'S2', tag: 'season-early', ep: 'S2E42', color: '#E8413C', driveId: '12ycjqRPWwL65U6SN_cpazlnLOEJlzqyl' },
+  { title: 'Doraemon S02E43', season: 'S2', tag: 'season-early', ep: 'S2E43', color: '#FFD93D', driveId: '1tY73sYdv68SEYaRsuuRQwANw7Z2ZBPtj' },
+  { title: 'Doraemon S02E44', season: 'S2', tag: 'season-early', ep: 'S2E44', color: '#2BA4E0', driveId: '1ODh58zYVo6fOiv332OkCKttdHzNSC96R' },
+  { title: 'Doraemon S02E45', season: 'S2', tag: 'season-early', ep: 'S2E45', color: '#E8413C', driveId: '10x4OjsAhjgoqAVXDYz_Zy52_rPe2FQM_' },
+  { title: 'Doraemon S02E46', season: 'S2', tag: 'season-early', ep: 'S2E46', color: '#FFD93D', driveId: '1jegokmTtvFUb089Degz4rfWgTgJV5K3w' },
+  { title: 'Doraemon S02E47', season: 'S2', tag: 'season-early', ep: 'S2E47', color: '#2BA4E0', driveId: '1GHpYxi_ARgxj8zvww1WnUfKf0_VMvCN0' },
+  { title: 'Doraemon S02E48', season: 'S2', tag: 'season-early', ep: 'S2E48', color: '#E8413C', driveId: '1TDQLmY3BR0Pe5cqWwtiorOy51lomhDOT' },
+  { title: 'Doraemon S02E49', season: 'S2', tag: 'season-early', ep: 'S2E49', color: '#FFD93D', driveId: '1T7aqLHCp26GFOTKURyTySNTUxKCijwu0' },
+  { title: 'Doraemon S02E50', season: 'S2', tag: 'season-early', ep: 'S2E50', color: '#2BA4E0', driveId: '1CwNlWyd0X__i7XPYN5owH2IG9enaL7Dd' },
+  { title: 'Doraemon S02E51', season: 'S2', tag: 'season-early', ep: 'S2E51', color: '#E8413C', driveId: '1WgD01PLYU4VZNGoCgflV2WdYpM8bjLMf' },
+  // Season 1 (52 episodes) - from Google Drive
+  { title: 'Doraemon S01E01', season: 'S1', tag: 'season-early', ep: 'S01E01', color: '#2BA4E0', driveId: '1SPl5QJ22ik0Tbb1_8oEQU6n8Csk9uK-3' },
+  { title: 'Doraemon S01E02', season: 'S1', tag: 'season-early', ep: 'S01E02', color: '#E8413C', driveId: '1QWt4IPOZt7A7VpgZCqk1CmW432XcRMkZ' },
+  { title: 'Doraemon S01E03', season: 'S1', tag: 'season-early', ep: 'S01E03', color: '#FFD93D', driveId: '1Xn4DFE9hU0-K5ZuYhePqZ5XNlGEMrAsf' },
+  { title: 'Doraemon S01E04', season: 'S1', tag: 'season-early', ep: 'S01E04', color: '#2BA4E0', driveId: '1iX5m2UF9vxPNb_-V1pD0gvRUYawNGX0t' },
+  { title: 'Doraemon S01E05', season: 'S1', tag: 'season-early', ep: 'S01E05', color: '#E8413C', driveId: '1WEOH92X5wN_HT4y34VOmL8qCJlgUBI1_' },
+  { title: 'Doraemon S01E06', season: 'S1', tag: 'season-early', ep: 'S01E06', color: '#FFD93D', driveId: '1-U6n-7Jh4I_h-QE4YRFT4O5ijz3snrGG' },
+  { title: 'Doraemon S01E07', season: 'S1', tag: 'season-early', ep: 'S01E07', color: '#2BA4E0', driveId: '1vHzWFJVEu4tAV9-6phzVi8d5Hmk0Xdj6' },
+  { title: 'Doraemon S01E08', season: 'S1', tag: 'season-early', ep: 'S01E08', color: '#E8413C', driveId: '1ZxvTWg1riAHFoxC_HSPPyc2NUQg7T_TN' },
+  { title: 'Doraemon S01E09', season: 'S1', tag: 'season-early', ep: 'S01E09', color: '#FFD93D', driveId: '1ub6ti2Ro4wTPUSLIQhVSj76hb4j4928k' },
+  { title: 'Doraemon S01E10', season: 'S1', tag: 'season-early', ep: 'S01E10', color: '#2BA4E0', driveId: '1QiWCYUTeTxhXQjCPf6ZZX_n97DpnOiRl' },
+  { title: 'Doraemon S01E11', season: 'S1', tag: 'season-early', ep: 'S01E11', color: '#E8413C', driveId: '1is2n8VHtUhuHw6Ls75ku6S4tOj9NH4U2' },
+  { title: 'Doraemon S01E12', season: 'S1', tag: 'season-early', ep: 'S01E12', color: '#FFD93D', driveId: '18zfG7Rf8dqoOQZRikuWngEXaY35plpqV' },
+  { title: 'Doraemon S01E13', season: 'S1', tag: 'season-early', ep: 'S01E13', color: '#2BA4E0', driveId: '1O5GWmQfvB2q7K2xH4WN1e1ghHJYJ6gJ9' },
+  { title: 'Doraemon S01E14', season: 'S1', tag: 'season-early', ep: 'S01E14', color: '#E8413C', driveId: '1uUiloH2b5NICDautFsx8jYuJo2iVa3Nk' },
+  { title: 'Doraemon S01E15', season: 'S1', tag: 'season-early', ep: 'S01E15', color: '#FFD93D', driveId: '1XzDIvuW4dRUKTDkkvG3jpD7yL3beTqah' },
+  { title: 'Doraemon S01E16', season: 'S1', tag: 'season-early', ep: 'S01E16', color: '#2BA4E0', driveId: '1Qrk4DTzpEAQ-nhNdtXHU6-Y7svmulz-F' },
+  { title: 'Doraemon S01E17', season: 'S1', tag: 'season-early', ep: 'S01E17', color: '#E8413C', driveId: '124lVSTFOPI0XrfqqkqaaxpAIOqSqGhFa' },
+  { title: 'Doraemon S01E18', season: 'S1', tag: 'season-early', ep: 'S01E18', color: '#FFD93D', driveId: '1RDNok9dTxUCZ7_SRjiS4CwsE7w7pz7oq' },
+  { title: 'Doraemon S01E19', season: 'S1', tag: 'season-early', ep: 'S01E19', color: '#2BA4E0', driveId: '1gONdaS2F_X9kCp51hp-8LqeQLkcjgpPR' },
+  { title: 'Doraemon S01E20', season: 'S1', tag: 'season-early', ep: 'S01E20', color: '#E8413C', driveId: '1D-69sU4YsHQnQV5U82fHq1CnhJU_Sesk' },
+  { title: 'Doraemon S01E21', season: 'S1', tag: 'season-early', ep: 'S01E21', color: '#FFD93D', driveId: '1GfLgu2RroYzbmqUQoDJuxPoZaXeoeos_' },
+  { title: 'Doraemon S01E22', season: 'S1', tag: 'season-early', ep: 'S01E22', color: '#2BA4E0', driveId: '1xSUNrDpDGCoywOg7r17E7hhMyTwUBTQc' },
+  { title: 'Doraemon S01E23', season: 'S1', tag: 'season-early', ep: 'S01E23', color: '#E8413C', driveId: '1DZPSHZAcPhV88k10gAi2rQSNY5rJXP9Q' },
+  { title: 'Doraemon S01E24', season: 'S1', tag: 'season-early', ep: 'S01E24', color: '#FFD93D', driveId: '14XlCJysIyE1oG7HUaFaC3mclEFn2tRn6' },
+  { title: 'Doraemon S01E25', season: 'S1', tag: 'season-early', ep: 'S01E25', color: '#2BA4E0', driveId: '1DceWWug_L7rxV6VHI-wVPox82SFKhCp3' },
+  { title: 'Doraemon S01E26', season: 'S1', tag: 'season-early', ep: 'S01E26', color: '#E8413C', driveId: '1rqGdm799aG5ne8Mo5RG87J00H6y_XLT8' },
+  { title: 'Doraemon S01E27', season: 'S1', tag: 'season-early', ep: 'S01E27', color: '#FFD93D', driveId: '1j2G1gjYNUZDSHEz_I6j7nNkrfHTq7i5e' },
+  { title: 'Doraemon S01E28', season: 'S1', tag: 'season-early', ep: 'S01E28', color: '#2BA4E0', driveId: '10APu7p0fIuzfIelmkPnAtHNGL3RoFJ5O' },
+  { title: 'Doraemon S01E29', season: 'S1', tag: 'season-early', ep: 'S01E29', color: '#E8413C', driveId: '111jA51mT5Te9WLcTUfubEEaqOsjc2IqW' },
+  { title: 'Doraemon S01E30', season: 'S1', tag: 'season-early', ep: 'S01E30', color: '#FFD93D', driveId: '1Z_eCDQDwXeZC4-PhNVA3zjJK6aqYVfJ3' },
+  { title: 'Doraemon S01E31', season: 'S1', tag: 'season-early', ep: 'S01E31', color: '#2BA4E0', driveId: '1WpcC2N-gCO6LyuKwW7rZMH8WaqrtD9I3' },
+  { title: 'Doraemon S01E32', season: 'S1', tag: 'season-early', ep: 'S01E32', color: '#E8413C', driveId: '1PgY67PuLW6_T3GC30q8MthtsQjbVmQQb' },
+  { title: 'Doraemon S01E33', season: 'S1', tag: 'season-early', ep: 'S01E33', color: '#FFD93D', driveId: '1iHxbGCd64U1jHDxHw1yV7VfiSWz_oSXh' },
+  { title: 'Doraemon S01E34', season: 'S1', tag: 'season-early', ep: 'S01E34', color: '#2BA4E0', driveId: '18HVXckIaGVqMAa6kB3y1nFNOeq_o0ul2' },
+  { title: 'Doraemon S01E35', season: 'S1', tag: 'season-early', ep: 'S01E35', color: '#E8413C', driveId: '1739ktOam2ED5HuR53Mo_wMX1DdiIiAsY' },
+  { title: 'Doraemon S01E36', season: 'S1', tag: 'season-early', ep: 'S01E36', color: '#FFD93D', driveId: '1m2q1jcQtAnUUC1iG3NiNK20eGYAEfgey' },
+  { title: 'Doraemon S01E37', season: 'S1', tag: 'season-early', ep: 'S01E37', color: '#2BA4E0', driveId: '1-vZTssAWzdAclSORcxepjrbHaHDj2D_F' },
+  { title: 'Doraemon S01E38', season: 'S1', tag: 'season-early', ep: 'S01E38', color: '#E8413C', driveId: '1NCkAdmz38YBOXPcMVKNlmVda25O1UQwN' },
+  { title: 'Doraemon S01E39', season: 'S1', tag: 'season-early', ep: 'S01E39', color: '#FFD93D', driveId: '1OsGqY24cYnajIr-wxBbioKP6l-AJE2II' },
+  { title: 'Doraemon S01E40', season: 'S1', tag: 'season-early', ep: 'S01E40', color: '#2BA4E0', driveId: '1_jYLTHCWpt9hjjouN9ygE0NZVCpoZtkK' },
+  { title: 'Doraemon S01E41', season: 'S1', tag: 'season-early', ep: 'S01E41', color: '#E8413C', driveId: '1TG8xqxX3SgFu04p8DgcqMbOiPmt3pfAG' },
+  { title: 'Doraemon S01E42', season: 'S1', tag: 'season-early', ep: 'S01E42', color: '#FFD93D', driveId: '1iElMxBySkI7EFZQvkDtqzHB9VG2JNcoF' },
+  { title: 'Doraemon S01E43', season: 'S1', tag: 'season-early', ep: 'S01E43', color: '#2BA4E0', driveId: '10cvSPxOoLoFp-EZSGEeQAl6M5A69_-6S' },
+  { title: 'Doraemon S01E44', season: 'S1', tag: 'season-early', ep: 'S01E44', color: '#E8413C', driveId: '1cFUzD9rw7jS81qNeUgJmqrLZ4gQhoxSH' },
+  { title: 'Doraemon S01E45', season: 'S1', tag: 'season-early', ep: 'S01E45', color: '#FFD93D', driveId: '18BdWNyrSuy6RfaiYDWsbPTWCB5RJUnNW' },
+  { title: 'Doraemon S01E46', season: 'S1', tag: 'season-early', ep: 'S01E46', color: '#2BA4E0', driveId: '1CaBTd6mrQ2ikPiRtrQoPWt5oSuKRKLK0' },
+  { title: 'Doraemon S01E47', season: 'S1', tag: 'season-early', ep: 'S01E47', color: '#E8413C', driveId: '1RlnRfGPsp-mr3YZJ2tQqlViaMulfBwb3' },
+  { title: 'Doraemon S01E48', season: 'S1', tag: 'season-early', ep: 'S01E48', color: '#FFD93D', driveId: '1dup--gxcDL957Nql-yFEPDgQkB9rLrCl' },
+  { title: 'Doraemon S01E49', season: 'S1', tag: 'season-early', ep: 'S01E49', color: '#2BA4E0', driveId: '1dH8qM2jVvjIaaIXcSH2xCwAZSBd-J-2K' },
+  { title: 'Doraemon S01E50', season: 'S1', tag: 'season-early', ep: 'S01E50', color: '#E8413C', driveId: '121Zpxoqwvu5VSkCdsSmyoVyzgUQ6wivh' },
+  { title: 'Doraemon S01E51', season: 'S1', tag: 'season-early', ep: 'S01E51', color: '#FFD93D', driveId: '13MKvr27e1-mPQldw7ufubqGxEHNN73Ua' },
+  { title: 'Doraemon S01E52', season: 'S1', tag: 'season-early', ep: 'S01E52', color: '#2BA4E0', driveId: '1tqShNcUCS78lnIbqY9P_PzvZf4u9jO2p' },
+  // Season 14 (52 episodes) - from Google Drive
+  { title: 'Doraemon S14E01', season: 'S14', tag: 'season-late', ep: 'S14E01', color: '#9B59B6', driveId: '1pRNKBaHQtuUehdr50TSK5ckDpzgmOtfw' },
+  { title: 'Doraemon S14E02', season: 'S14', tag: 'season-late', ep: 'S14E02', color: '#8E44AD', driveId: '19jZX-K8c-bTODoheI3OTP8I6HbisksAj' },
+  { title: 'Doraemon S14E03', season: 'S14', tag: 'season-late', ep: 'S14E03', color: '#9B59B6', driveId: '1lzk61pxpAMABB3IrSi2G-DbUfL8hyJj0' },
+  { title: 'Doraemon S14E04', season: 'S14', tag: 'season-late', ep: 'S14E04', color: '#8E44AD', driveId: '1e_8sIs6U-f2Quk3e0qcAh8Q4sVNRncmg' },
+  { title: 'Doraemon S14E05', season: 'S14', tag: 'season-late', ep: 'S14E05', color: '#9B59B6', driveId: '1Y_UK9Bar8padRPZDvyt5PEZJxTOQJQNi' },
+  { title: 'Doraemon S14E06', season: 'S14', tag: 'season-late', ep: 'S14E06', color: '#8E44AD', driveId: '1aT1AG3qxnzCNr0vpR_ehG4KRQNnK32N-' },
+  { title: 'Doraemon S14E07', season: 'S14', tag: 'season-late', ep: 'S14E07', color: '#9B59B6', driveId: '1oab0cgrtHY7pyA1NO6nF8JEfPEQCOo8Y' },
+  { title: 'Doraemon S14E08', season: 'S14', tag: 'season-late', ep: 'S14E08', color: '#8E44AD', driveId: '18u0uly_iOt3s1NoPrJZye8HBuokPihUB' },
+  { title: 'Doraemon S14E09', season: 'S14', tag: 'season-late', ep: 'S14E09', color: '#9B59B6', driveId: '15TA08VYFHJmcCb8vmDoQ9BS-kGgg6DNO' },
+  { title: 'Doraemon S14E10', season: 'S14', tag: 'season-late', ep: 'S14E10', color: '#8E44AD', driveId: '1H6sbJ65jB6jGLjYlIJLi1lo2CR7KCNoR' },
+  { title: 'Doraemon S14E11', season: 'S14', tag: 'season-late', ep: 'S14E11', color: '#9B59B6', driveId: '1Ep2fLR10dym2POE09MH65dzYut_9orDS' },
+  { title: 'Doraemon S14E12', season: 'S14', tag: 'season-late', ep: 'S14E12', color: '#8E44AD', driveId: '1qQeXUDpTVuvdADIiuOpem4FlaxLT_-wy' },
+  { title: 'Doraemon S14E13', season: 'S14', tag: 'season-late', ep: 'S14E13', color: '#9B59B6', driveId: '1XuTvFtdgOyT267V8Sfq823-pUiBeMQXO' },
+  { title: 'Doraemon S14E14', season: 'S14', tag: 'season-late', ep: 'S14E14', color: '#8E44AD', driveId: '1ej-BzcpxiF-_I5DpD7c7czsbyXkmEy2W' },
+  { title: 'Doraemon S14E15', season: 'S14', tag: 'season-late', ep: 'S14E15', color: '#9B59B6', driveId: '1MBPBWMBV0Q8vhagkOrdEAfxWwhJvHsuH' },
+  { title: 'Doraemon S14E16', season: 'S14', tag: 'season-late', ep: 'S14E16', color: '#8E44AD', driveId: '1awbwfKyn5wdEpETFu8oaQS812EnJScH8' },
+  { title: 'Doraemon S14E17', season: 'S14', tag: 'season-late', ep: 'S14E17', color: '#9B59B6', driveId: '1lvkMxM7MbcXwSEsc6Ortjquk3JX0TSqq' },
+  { title: 'Doraemon S14E18', season: 'S14', tag: 'season-late', ep: 'S14E18', color: '#8E44AD', driveId: '1HZUe4asBsKaf9zpye39aFx3asVl-lGg3' },
+  { title: 'Doraemon S14E19', season: 'S14', tag: 'season-late', ep: 'S14E19', color: '#9B59B6', driveId: '141MuhGPfpOTefbQn5T3gHPXjfZpPf1xI' },
+  { title: 'Doraemon S14E20', season: 'S14', tag: 'season-late', ep: 'S14E20', color: '#8E44AD', driveId: '1vY63PC5BZwMIuwQl6PGECkTG9yDJx8Pi' },
+  { title: 'Doraemon S14E21', season: 'S14', tag: 'season-late', ep: 'S14E21', color: '#9B59B6', driveId: '14O25Pv6GbBIUSk7rtbWaHmus2h6JCguW' },
+  { title: 'Doraemon S14E22', season: 'S14', tag: 'season-late', ep: 'S14E22', color: '#8E44AD', driveId: '1iWnyYvAN51sIKmLhjhCxyhRA-b2m79f7' },
+  { title: 'Doraemon S14E23', season: 'S14', tag: 'season-late', ep: 'S14E23', color: '#9B59B6', driveId: '1L5f0Upemafbs_Uqt4yuu_YjUHVQy7gea' },
+  { title: 'Doraemon S14E24', season: 'S14', tag: 'season-late', ep: 'S14E24', color: '#8E44AD', driveId: '1jZfxXAg03fqavfZUefPgPmd1688hrtp9' },
+  { title: 'Doraemon S14E25', season: 'S14', tag: 'season-late', ep: 'S14E25', color: '#9B59B6', driveId: '1YnDwH_g_xNau4RKyvvsCamPtGQA9AZwy' },
+  { title: 'Doraemon S14E26', season: 'S14', tag: 'season-late', ep: 'S14E26', color: '#8E44AD', driveId: '1m6Cx2YjqlLVt1JXgbljkeaw2MrO1JdSk' },
+  { title: 'Doraemon S14E27', season: 'S14', tag: 'season-late', ep: 'S14E27', color: '#9B59B6', driveId: '1fryeo1HZDDMEKKZuk9UB_7uo8chBJIHP' },
+  { title: 'Doraemon S14E28', season: 'S14', tag: 'season-late', ep: 'S14E28', color: '#8E44AD', driveId: '1ThLlUssKrE_zJ6LuTnfdjMu2pMGnUyT7' },
+  { title: 'Doraemon S14E29', season: 'S14', tag: 'season-late', ep: 'S14E29', color: '#9B59B6', driveId: '1QJfHNdPo32F7enHIlEf18HkLLMD5KFhG' },
+  { title: 'Doraemon S14E30', season: 'S14', tag: 'season-late', ep: 'S14E30', color: '#8E44AD', driveId: '1ucPCcst1syqTOjv4wLqXyh4h_sErOnJx' },
+  { title: 'Doraemon S14E31', season: 'S14', tag: 'season-late', ep: 'S14E31', color: '#9B59B6', driveId: '1TFqViHXwfjR6QgK2zOXYXviyCK6sjULf' },
+  { title: 'Doraemon S14E32', season: 'S14', tag: 'season-late', ep: 'S14E32', color: '#8E44AD', driveId: '1MfRtN9ojTuxcXMJ5sYQd8CVqLeOx2LDZ' },
+  { title: 'Doraemon S14E33', season: 'S14', tag: 'season-late', ep: 'S14E33', color: '#9B59B6', driveId: '1AZXHfKqbkMo1RwYdMp9ay_TXDMb4Q_zl' },
+  { title: 'Doraemon S14E34', season: 'S14', tag: 'season-late', ep: 'S14E34', color: '#8E44AD', driveId: '1xVuEHOyV1R-SbTCmyZGNhKGiOHhCf8Pq' },
+  { title: 'Doraemon S14E35', season: 'S14', tag: 'season-late', ep: 'S14E35', color: '#9B59B6', driveId: '1xgUWHvvsbgAxlUw2KZLSdqawsZckfekt' },
+  { title: 'Doraemon S14E36', season: 'S14', tag: 'season-late', ep: 'S14E36', color: '#8E44AD', driveId: '1OKvdss7HqjKBSWkChZrmGFmrzaq--rcC' },
+  { title: 'Doraemon S14E37', season: 'S14', tag: 'season-late', ep: 'S14E37', color: '#9B59B6', driveId: '196orVk-SfW5sy9feizx-1JiaY_8TuhWg' },
+  { title: 'Doraemon S14E38', season: 'S14', tag: 'season-late', ep: 'S14E38', color: '#8E44AD', driveId: '1KHQmYCwwZ38bjbU7zBlPpa9fXIMBdG3I' },
+  { title: 'Doraemon S14E39', season: 'S14', tag: 'season-late', ep: 'S14E39', color: '#9B59B6', driveId: '1-IqIOkeAMq4nTSorEJN1DU7hvt1QJ-Oy' },
+  { title: 'Doraemon S14E40', season: 'S14', tag: 'season-late', ep: 'S14E40', color: '#8E44AD', driveId: '1rzIwhqtkfIGIq3nbe3x5l5w4D6Z2u-9c' },
+  { title: 'Doraemon S14E41', season: 'S14', tag: 'season-late', ep: 'S14E41', color: '#9B59B6', driveId: '1GO6Nt9rD1ISlIRFc9vJey6yLLpoFtuiR' },
+  { title: 'Doraemon S14E42', season: 'S14', tag: 'season-late', ep: 'S14E42', color: '#8E44AD', driveId: '1QV9kj_RhtaJSp_RzMiKrKUax2jflxxpp' },
+  { title: 'Doraemon S14E43', season: 'S14', tag: 'season-late', ep: 'S14E43', color: '#9B59B6', driveId: '1fsbKyoolsEjpL2hzbH6s6I3VCzdymRyL' },
+  { title: 'Doraemon S14E44', season: 'S14', tag: 'season-late', ep: 'S14E44', color: '#8E44AD', driveId: '1J1OrPgQ6hDhniu2wCkE9YVfEv7rMqJes' },
+  { title: 'Doraemon S14E45', season: 'S14', tag: 'season-late', ep: 'S14E45', color: '#9B59B6', driveId: '1NDuYBgjZL_WiO3X6v1MoIBzXd3bUYRIm' },
+  { title: 'Doraemon S14E46', season: 'S14', tag: 'season-late', ep: 'S14E46', color: '#8E44AD', driveId: '10JLtZsrmnpLMtXBoW3cuQ97zLEYMeZ4j' },
+  { title: 'Doraemon S14E47', season: 'S14', tag: 'season-late', ep: 'S14E47', color: '#9B59B6', driveId: '1U4aJHIf6P3Mv-7ecbmCJcJkQSDT8mKz0' },
+  { title: 'Doraemon S14E48', season: 'S14', tag: 'season-late', ep: 'S14E48', color: '#8E44AD', driveId: '1aF-v_o6peMpz6p3NwvjMd83KcW0glUoD' },
+  { title: 'Doraemon S14E49', season: 'S14', tag: 'season-late', ep: 'S14E49', color: '#9B59B6', driveId: '1d0RAhcg-lykFJX3QAjYhVBRvHnE5zTSv' },
+  { title: 'Doraemon S14E50', season: 'S14', tag: 'season-late', ep: 'S14E50', color: '#8E44AD', driveId: '1vnDkolJHkcotINry0gnzG9vNVB-SHXbp' },
+  { title: 'Doraemon S14E51', season: 'S14', tag: 'season-late', ep: 'S14E51', color: '#9B59B6', driveId: '1vb1PLC99_fgj75UWml5IM6QBLp5ED1df' },
+  { title: 'Doraemon S14E52', season: 'S14', tag: 'season-late', ep: 'S14E52', color: '#8E44AD', driveId: '1iIx0FAqTDLbd5GKcj0pY9psD_VTtnDAa' },
+  // Season 15 (52 episodes) - from Google Drive
+  { title: 'Doraemon S15E01', season: 'S15', tag: 'season-late', ep: 'S15E01', color: '#1ABC9C', driveId: '1XpW8AhYL9UtUzbqnBd9nHQ_7kWGWTbRX' },
+  { title: 'Doraemon S15E02', season: 'S15', tag: 'season-late', ep: 'S15E02', color: '#17A589', driveId: '10xRXyRZEY_sis8aWgsesPsX6itEYShuT' },
+  { title: 'Doraemon S15E03', season: 'S15', tag: 'season-late', ep: 'S15E03', color: '#1ABC9C', driveId: '1KsPiXo3d4HXQ4i6PWRo4O7JmYdwp-rxM' },
+  { title: 'Doraemon S15E04', season: 'S15', tag: 'season-late', ep: 'S15E04', color: '#17A589', driveId: '11DeTkJ-oNJaG42Kro8UVgLmGcntfJq31' },
+  { title: 'Doraemon S15E05', season: 'S15', tag: 'season-late', ep: 'S15E05', color: '#1ABC9C', driveId: '1ASo_rH9u-3SNF2zdLdvN_o6zAI4DKZ6X' },
+  { title: 'Doraemon S15E06', season: 'S15', tag: 'season-late', ep: 'S15E06', color: '#17A589', driveId: '1yieHdZL11nTci47SMNyw3Bn7SzzsPSjd' },
+  { title: 'Doraemon S15E07', season: 'S15', tag: 'season-late', ep: 'S15E07', color: '#1ABC9C', driveId: '1Ov8njD_x7kEnfvqjbIfaTBkvYSysB_jn' },
+  { title: 'Doraemon S15E08', season: 'S15', tag: 'season-late', ep: 'S15E08', color: '#17A589', driveId: '17OKgGxxEcjlfX7bUZeEuDuMZslGF7vbG' },
+  { title: 'Doraemon S15E09', season: 'S15', tag: 'season-late', ep: 'S15E09', color: '#1ABC9C', driveId: '1xL7KN5ZBRNpAL4OFlJQVozm0TatzJOXV' },
+  { title: 'Doraemon S15E10', season: 'S15', tag: 'season-late', ep: 'S15E10', color: '#17A589', driveId: '19_tYRQfE44sM4kq5NKXYsC8prQUute3f' },
+  { title: 'Doraemon S15E11', season: 'S15', tag: 'season-late', ep: 'S15E11', color: '#1ABC9C', driveId: '1DgvXi-ASzosyTvdDlh0o8bjY8UtpuYLB' },
+  { title: 'Doraemon S15E12', season: 'S15', tag: 'season-late', ep: 'S15E12', color: '#17A589', driveId: '1OcckdKJqCrlTROGwPX9nI9kXyjKCPCCN' },
+  { title: 'Doraemon S15E13', season: 'S15', tag: 'season-late', ep: 'S15E13', color: '#1ABC9C', driveId: '14Vcbm39g00gPbt2h80TgaW85ZjKtX50Y' },
+  { title: 'Doraemon S15E14', season: 'S15', tag: 'season-late', ep: 'S15E14', color: '#17A589', driveId: '1LIzURzZKSE7holShk_E7aeEHBcWQChXL' },
+  { title: 'Doraemon S15E15', season: 'S15', tag: 'season-late', ep: 'S15E15', color: '#1ABC9C', driveId: '1ZygHLL1B6SL1KG8hk7ko4ozBWsnnVVyc' },
+  { title: 'Doraemon S15E16', season: 'S15', tag: 'season-late', ep: 'S15E16', color: '#17A589', driveId: '1QSFa3ow0ol-EM_Vz46ivP2hdtIZwZa-_' },
+  { title: 'Doraemon S15E17', season: 'S15', tag: 'season-late', ep: 'S15E17', color: '#1ABC9C', driveId: '1N-MdlIJLaZalSq8Li7aJ1ihojUK8sH5R' },
+  { title: 'Doraemon S15E18', season: 'S15', tag: 'season-late', ep: 'S15E18', color: '#17A589', driveId: '1Og2HftSjYCOo_4sUOkvKpky4c6vD1kaX' },
+  { title: 'Doraemon S15E19', season: 'S15', tag: 'season-late', ep: 'S15E19', color: '#1ABC9C', driveId: '1-zem6WnFIUoQvMk85s0-5Xy3fZfU8ytq' },
+  { title: 'Doraemon S15E20', season: 'S15', tag: 'season-late', ep: 'S15E20', color: '#17A589', driveId: '17b_FcvVyiCXOHWryD3DhjqgWo6GLgMyv' },
+  { title: 'Doraemon S15E21', season: 'S15', tag: 'season-late', ep: 'S15E21', color: '#1ABC9C', driveId: '1tT418-CyVXv7CrRipdRGNMtVW1yp0s__' },
+  { title: 'Doraemon S15E22', season: 'S15', tag: 'season-late', ep: 'S15E22', color: '#17A589', driveId: '1nv0y_a0i8XFwX0yBNIKwBwmwpuXRAo4p' },
+  { title: 'Doraemon S15E23', season: 'S15', tag: 'season-late', ep: 'S15E23', color: '#1ABC9C', driveId: '1TqZFLhPKuJ0HLPfpIjdp35TZsm5fWcoi' },
+  { title: 'Doraemon S15E24', season: 'S15', tag: 'season-late', ep: 'S15E24', color: '#17A589', driveId: '132Q8znf2x86gO8h88cG-tNIf0JETn-n2' },
+  { title: 'Doraemon S15E25', season: 'S15', tag: 'season-late', ep: 'S15E25', color: '#1ABC9C', driveId: '1RxCBojyrjRaWqkIr2AL-KRb6lkLl6Ajk' },
+  { title: 'Doraemon S15E26', season: 'S15', tag: 'season-late', ep: 'S15E26', color: '#17A589', driveId: '1Z1UBN3TjCJJSY25fBVb6uKczude9BpwD' },
+  { title: 'Doraemon S15E27', season: 'S15', tag: 'season-late', ep: 'S15E27', color: '#1ABC9C', driveId: '1nmDrG-N4wR7TZAsM09bBfm_5AIZAqfA4' },
+  { title: 'Doraemon S15E28', season: 'S15', tag: 'season-late', ep: 'S15E28', color: '#17A589', driveId: '1pGaMvsmmyDiwsJMdkBcBhbfqVIDzvnSR' },
+  { title: 'Doraemon S15E29', season: 'S15', tag: 'season-late', ep: 'S15E29', color: '#1ABC9C', driveId: '1OlXY7l7yPmyxKHzJPc-cRliwPocXvDb7' },
+  { title: 'Doraemon S15E30', season: 'S15', tag: 'season-late', ep: 'S15E30', color: '#17A589', driveId: '1QtY4gD04IcXcI_1-CuqPWc2aQeZ8aE74' },
+  { title: 'Doraemon S15E31', season: 'S15', tag: 'season-late', ep: 'S15E31', color: '#1ABC9C', driveId: '10aAm5U-Gt4onkV8iO1OnXlNNNvt4HgVH' },
+  { title: 'Doraemon S15E32', season: 'S15', tag: 'season-late', ep: 'S15E32', color: '#17A589', driveId: '10KRyeByukoaeTWn6SLx5ccHUZZhk3bTU' },
+  { title: 'Doraemon S15E33', season: 'S15', tag: 'season-late', ep: 'S15E33', color: '#1ABC9C', driveId: '15pDTf-_V_n1JfwXfoEMv1hinD1Y7t-Eh' },
+  { title: 'Doraemon S15E34', season: 'S15', tag: 'season-late', ep: 'S15E34', color: '#17A589', driveId: '1pNsz02qD59IKxQwU1W9QHf6Zg2nNbjXC' },
+  { title: 'Doraemon S15E35', season: 'S15', tag: 'season-late', ep: 'S15E35', color: '#1ABC9C', driveId: '1WgWJolYxDtFxu91ibjfko8QCodHpprXo' },
+  { title: 'Doraemon S15E36', season: 'S15', tag: 'season-late', ep: 'S15E36', color: '#17A589', driveId: '1-HAHvUl65fLRrGR01Z3G1X9j5JCIxadB' },
+  { title: 'Doraemon S15E37', season: 'S15', tag: 'season-late', ep: 'S15E37', color: '#1ABC9C', driveId: '12b8AL8MI72emyokYhw55WdLhj0GYNgWh' },
+  { title: 'Doraemon S15E38', season: 'S15', tag: 'season-late', ep: 'S15E38', color: '#17A589', driveId: '1JYOuhBsH357jBnnGRGuQbw3LFdoevHRM' },
+  { title: 'Doraemon S15E39', season: 'S15', tag: 'season-late', ep: 'S15E39', color: '#1ABC9C', driveId: '1V49ZsMXOxkR5mOD--088S73U_uB1DeFj' },
+  { title: 'Doraemon S15E40', season: 'S15', tag: 'season-late', ep: 'S15E40', color: '#17A589', driveId: '1Ehq7pik2DVUxWFQbW2ZTDiZlAEHbK92I' },
+  { title: 'Doraemon S15E41', season: 'S15', tag: 'season-late', ep: 'S15E41', color: '#1ABC9C', driveId: '1Ab5ppyHkqO_mMOLbUoCdYvlFG6flSe7M' },
+  { title: 'Doraemon S15E42', season: 'S15', tag: 'season-late', ep: 'S15E42', color: '#17A589', driveId: '1Un5FKsivYcfoQHcbKHuWNlol7_YlWute' },
+  { title: 'Doraemon S15E43', season: 'S15', tag: 'season-late', ep: 'S15E43', color: '#1ABC9C', driveId: '1tx6WvvQLxHSJfUX6_upZWBEx9taLzL-3' },
+  { title: 'Doraemon S15E44', season: 'S15', tag: 'season-late', ep: 'S15E44', color: '#17A589', driveId: '1ZM4Wo5-J06SaHyI2H3vsmWz-VNVEcsj-' },
+  { title: 'Doraemon S15E45', season: 'S15', tag: 'season-late', ep: 'S15E45', color: '#1ABC9C', driveId: '1tOEG2RG9swCD6HHkvDUd-7Y5Ba9TjCPz' },
+  { title: 'Doraemon S15E46', season: 'S15', tag: 'season-late', ep: 'S15E46', color: '#17A589', driveId: '16SougrZgxrG5Numum_zOIrXYS2__HEbd' },
+  { title: 'Doraemon S15E47', season: 'S15', tag: 'season-late', ep: 'S15E47', color: '#1ABC9C', driveId: '1fF0hWt1JogP5ex5QLNkitRaoyujy_vOf' },
+  { title: 'Doraemon S15E48', season: 'S15', tag: 'season-late', ep: 'S15E48', color: '#17A589', driveId: '1b-AzyXZJwydtSPVVRItogsjaHtANvdCF' },
+  { title: 'Doraemon S15E49', season: 'S15', tag: 'season-late', ep: 'S15E49', color: '#1ABC9C', driveId: '1PpZ98_yv2m7qz_T7KYs3BeDfseM7YRPV' },
+  { title: 'Doraemon S15E50', season: 'S15', tag: 'season-late', ep: 'S15E50', color: '#17A589', driveId: '1JEFiRoTgt5ss5-5Kk0nF6a_L3PlXW4L-' },
+  { title: 'Doraemon S15E51', season: 'S15', tag: 'season-late', ep: 'S15E51', color: '#1ABC9C', driveId: '1ynJtxNadVznTLm2jPxZCXmn028VNqERh' },
+  { title: 'Doraemon S15E52', season: 'S15', tag: 'season-late', ep: 'S15E52', color: '#17A589', driveId: '1JgicLovQd41ptmCLv7EC8qZTxayWTsTi' },
+  // Season 16 (52 episodes) - from Google Drive
+  { title: 'Doraemon S16E01', season: 'S16', tag: 'season-late', ep: 'S16E01', color: '#E67E22', driveId: '1G9A-i1ot0Du5WUZ0Lp2_b39oiWkc6twM' },
+  { title: 'Doraemon S16E02', season: 'S16', tag: 'season-late', ep: 'S16E02', color: '#D35400', driveId: '1G6mUuBxizpGptbZk29yMofKJFwpGqgqd' },
+  { title: 'Doraemon S16E03', season: 'S16', tag: 'season-late', ep: 'S16E03', color: '#E67E22', driveId: '1MIU7tlg05oadIagIx5yyu5-qZcrP9n2F' },
+  { title: 'Doraemon S16E04', season: 'S16', tag: 'season-late', ep: 'S16E04', color: '#D35400', driveId: '1HivAVPaMF94WnjUOTfMyVw_YyzwyusHA' },
+  { title: 'Doraemon S16E05', season: 'S16', tag: 'season-late', ep: 'S16E05', color: '#E67E22', driveId: '1rbD3iQL8s9IPOXAwkk1twL8E3PXqC-M1' },
+  { title: 'Doraemon S16E06', season: 'S16', tag: 'season-late', ep: 'S16E06', color: '#D35400', driveId: '1xTuHHySjKvy6MGZXJ9oQ08BAYic7zsH-' },
+  { title: 'Doraemon S16E07', season: 'S16', tag: 'season-late', ep: 'S16E07', color: '#E67E22', driveId: '1ZwB7gSyD1ZEjpvnr_BuJi3y3pMcoaCNV' },
+  { title: 'Doraemon S16E08', season: 'S16', tag: 'season-late', ep: 'S16E08', color: '#D35400', driveId: '1dO8xUsT9s4SsWeqi5UZV53vJuNAV_Vt4' },
+  { title: 'Doraemon S16E09', season: 'S16', tag: 'season-late', ep: 'S16E09', color: '#E67E22', driveId: '12pJDDQbqazalnJJEK3R5HJzOrBDdqEdh' },
+  { title: 'Doraemon S16E10', season: 'S16', tag: 'season-late', ep: 'S16E10', color: '#D35400', driveId: '1_AzYKWFpj-OCb3wlU1_cAWVRuosU_-2U' },
+  { title: 'Doraemon S16E11', season: 'S16', tag: 'season-late', ep: 'S16E11', color: '#E67E22', driveId: '1g_T2D16QBiGBczuN1D0NYY3K9oQAkpcF' },
+  { title: 'Doraemon S16E12', season: 'S16', tag: 'season-late', ep: 'S16E12', color: '#D35400', driveId: '19Tfl4V5oyg8188bjA1KozqZYll6u_8sx' },
+  { title: 'Doraemon S16E13', season: 'S16', tag: 'season-late', ep: 'S16E13', color: '#E67E22', driveId: '1HcuqkHj3Y0dJFMuFhnf7SK0y1LHzgQpP' },
+  { title: 'Doraemon S16E14', season: 'S16', tag: 'season-late', ep: 'S16E14', color: '#D35400', driveId: '1ahxIpRLLlcqdh9WUxP3AMuDWFThexQPz' },
+  { title: 'Doraemon S16E15', season: 'S16', tag: 'season-late', ep: 'S16E15', color: '#E67E22', driveId: '1mZlrThTIUoTQl9RIQnrNVryYcSTA-eF9' },
+  { title: 'Doraemon S16E16', season: 'S16', tag: 'season-late', ep: 'S16E16', color: '#D35400', driveId: '1M0kFGelwVp_9hFBVCGPhc-0EbFWcYdvh' },
+  { title: 'Doraemon S16E17', season: 'S16', tag: 'season-late', ep: 'S16E17', color: '#E67E22', driveId: '11DSWWSnsrerGat-jJ_1-fwh-3jf0eewo' },
+  { title: 'Doraemon S16E18', season: 'S16', tag: 'season-late', ep: 'S16E18', color: '#D35400', driveId: '1zHBvFqtWVuduPHHtII2Iu6vG0Fi307wr' },
+  { title: 'Doraemon S16E19', season: 'S16', tag: 'season-late', ep: 'S16E19', color: '#E67E22', driveId: '1M4sYESt3KWFJ3E5tRph6jsD5cxL7ovWH' },
+  { title: 'Doraemon S16E20', season: 'S16', tag: 'season-late', ep: 'S16E20', color: '#D35400', driveId: '1bImRh8lutBOagUS9ns_i__RTzING7HJS' },
+  { title: 'Doraemon S16E21', season: 'S16', tag: 'season-late', ep: 'S16E21', color: '#E67E22', driveId: '1CB99njEmv4SnaqDotiz8PHPj_4FB268e' },
+  { title: 'Doraemon S16E22', season: 'S16', tag: 'season-late', ep: 'S16E22', color: '#D35400', driveId: '15iIOHnHSyV_Fyzr_FRYaKoQJc2ALFGSP' },
+  { title: 'Doraemon S16E23', season: 'S16', tag: 'season-late', ep: 'S16E23', color: '#E67E22', driveId: '1DYi2idYmcD45qH-7WHLdVaCcz_eCQW34' },
+  { title: 'Doraemon S16E24', season: 'S16', tag: 'season-late', ep: 'S16E24', color: '#D35400', driveId: '1xtN_fhYn42thAIX4PmGIUlHwWRRyzhsm' },
+  { title: 'Doraemon S16E25', season: 'S16', tag: 'season-late', ep: 'S16E25', color: '#E67E22', driveId: '1eXJhvtTlbF8L8rMDEaU6Or1kK-tNxxjM' },
+  { title: 'Doraemon S16E26', season: 'S16', tag: 'season-late', ep: 'S16E26', color: '#D35400', driveId: '1wmzaGkLtJQDcPrdpf1VWOvQ-1ZPUsTmC' },
+  { title: 'Doraemon S16E27', season: 'S16', tag: 'season-late', ep: 'S16E27', color: '#E67E22', driveId: '13pvEdNxW73F1lA7eTPzEvx7q2L40LW1W' },
+  { title: 'Doraemon S16E28', season: 'S16', tag: 'season-late', ep: 'S16E28', color: '#D35400', driveId: '1hUjYyIgn8-20fDKfkcrDCcl-XGSe-N7J' },
+  { title: 'Doraemon S16E29', season: 'S16', tag: 'season-late', ep: 'S16E29', color: '#E67E22', driveId: '1ykkNLxg_WucgC0-7-DTzHtWv6nZPuRWC' },
+  { title: 'Doraemon S16E30', season: 'S16', tag: 'season-late', ep: 'S16E30', color: '#D35400', driveId: '1QF_oKDjW7MnkSNDaXDkqoQn_rd0vKg6N' },
+  { title: 'Doraemon S16E31', season: 'S16', tag: 'season-late', ep: 'S16E31', color: '#E67E22', driveId: '1MgAUbb1as2pTqv9mdXKJq2nxDXqkZTdM' },
+  { title: 'Doraemon S16E32', season: 'S16', tag: 'season-late', ep: 'S16E32', color: '#D35400', driveId: '1TLerC7z_2sYnI1d5FG_5IPdwY86KVppa' },
+  { title: 'Doraemon S16E33', season: 'S16', tag: 'season-late', ep: 'S16E33', color: '#E67E22', driveId: '10DN0Webfwbur1lIWfN9Om6nr2MFP520S' },
+  { title: 'Doraemon S16E34', season: 'S16', tag: 'season-late', ep: 'S16E34', color: '#D35400', driveId: '1fLbWng-4Iu0hzB4dfYxQCvu88AU8Mudr' },
+  { title: 'Doraemon S16E35', season: 'S16', tag: 'season-late', ep: 'S16E35', color: '#E67E22', driveId: '1YGKAstX2khUdbCYdQgUlubxcH8Jb65Hh' },
+  { title: 'Doraemon S16E36', season: 'S16', tag: 'season-late', ep: 'S16E36', color: '#D35400', driveId: '1JB7NJf_qSb9y8hN6NfKZR1R_7ADJfoXd' },
+  { title: 'Doraemon S16E37', season: 'S16', tag: 'season-late', ep: 'S16E37', color: '#E67E22', driveId: '1KYOhRnf_KlF2fdODn_nJWN4Lurcfbo4Q' },
+  { title: 'Doraemon S16E38', season: 'S16', tag: 'season-late', ep: 'S16E38', color: '#D35400', driveId: '1tioymNr2rqnRh_PkwZi05Z22Nc_wPYyX' },
+  { title: 'Doraemon S16E39', season: 'S16', tag: 'season-late', ep: 'S16E39', color: '#E67E22', driveId: '12zDhBC022rUlnHaXVbtY_KNhQBP9kn4P' },
+  { title: 'Doraemon S16E40', season: 'S16', tag: 'season-late', ep: 'S16E40', color: '#D35400', driveId: '18GbeHNzKCPYsVpQEa-P6GRFraYGlZRMk' },
+  { title: 'Doraemon S16E41', season: 'S16', tag: 'season-late', ep: 'S16E41', color: '#E67E22', driveId: '1OAyiDbekajU1r_h6uF2CVn3UIx_Pn3D_' },
+  { title: 'Doraemon S16E42', season: 'S16', tag: 'season-late', ep: 'S16E42', color: '#D35400', driveId: '1u5CEb5bezKCB9nyQ3KCZ2-Xk2jG8KVNV' },
+  { title: 'Doraemon S16E43', season: 'S16', tag: 'season-late', ep: 'S16E43', color: '#E67E22', driveId: '19Hscp2UcxITtwdLl4dZnO-Xs8k7KGLhX' },
+  { title: 'Doraemon S16E44', season: 'S16', tag: 'season-late', ep: 'S16E44', color: '#D35400', driveId: '1Krfvsc0H7FyezooX4brB1fLwTgA9XqEw' },
+  { title: 'Doraemon S16E45', season: 'S16', tag: 'season-late', ep: 'S16E45', color: '#E67E22', driveId: '1HA9FYVxCraOttRHNl0B_J8KXCJbxZo1D' },
+  { title: 'Doraemon S16E46', season: 'S16', tag: 'season-late', ep: 'S16E46', color: '#D35400', driveId: '1FvPVRnxN6avvZyPXEBNQjjgO3MkJVzIa' },
+  { title: 'Doraemon S16E47', season: 'S16', tag: 'season-late', ep: 'S16E47', color: '#E67E22', driveId: '1mTJa_HRQGzTz8tG0QU1rpaXEwHHTsiAv' },
+  { title: 'Doraemon S16E48', season: 'S16', tag: 'season-late', ep: 'S16E48', color: '#D35400', driveId: '1CsulBNfc9wtPmGjhPx0Nff-SWPHFblT9' },
+  { title: 'Doraemon S16E49', season: 'S16', tag: 'season-late', ep: 'S16E49', color: '#E67E22', driveId: '1c_o6zfP6uTuj1xELyv7aqOWaqWw335s5' },
+  { title: 'Doraemon S16E50', season: 'S16', tag: 'season-late', ep: 'S16E50', color: '#D35400', driveId: '147CYikRTrx_hB6dLx4RhOyEIK8NSXidz' },
+  { title: 'Doraemon S16E51', season: 'S16', tag: 'season-late', ep: 'S16E51', color: '#E67E22', driveId: '1l0cwHRfdu_rOMhelUZaoR2ZfDFbmqnId' },
+  { title: 'Doraemon S16E52', season: 'S16', tag: 'season-late', ep: 'S16E52', color: '#D35400', driveId: '1QnvVa_vaayxEPNzQ-N-99E02Si9W4nCB' },
+  // Season 17A (E01-E35) - from Google Drive
+  { title: 'Doraemon S17E01', season: 'S17A', tag: 'season-late', ep: 'S17E01', color: '#2ECC71', driveId: '1J1HLt91rUJ_026AKiQPSM-OZ776t_6TC' },
+  { title: 'Doraemon S17E02', season: 'S17A', tag: 'season-late', ep: 'S17E02', color: '#27AE60', driveId: '1k4OnVbAxU2kTyh5AKGYjOSdbkufhWYLT' },
+  { title: 'Doraemon S17E03', season: 'S17A', tag: 'season-late', ep: 'S17E03', color: '#2ECC71', driveId: '1-oaxUh4o2she5D59ZrfA_SVXgtt1iNjX' },
+  { title: 'Doraemon S17E04', season: 'S17A', tag: 'season-late', ep: 'S17E04', color: '#27AE60', driveId: '1Y4mwB5sTmTA1LOqCVIyd4UD-EiyWsDmm' },
+  { title: 'Doraemon S17E05', season: 'S17A', tag: 'season-late', ep: 'S17E05', color: '#2ECC71', driveId: '1aA6Mp2L5xOe9TDH4I4OAwoH-6NdJrLKO' },
+  { title: 'Doraemon S17E06', season: 'S17A', tag: 'season-late', ep: 'S17E06', color: '#27AE60', driveId: '1UfjnEe1ip9c-H97I3HopwQn3s-wwuRlQ' },
+  { title: 'Doraemon S17E07', season: 'S17A', tag: 'season-late', ep: 'S17E07', color: '#2ECC71', driveId: '1dN1SHIZOyLUn1QxmJxRhH1amS0Wdy4vM' },
+  { title: 'Doraemon S17E08', season: 'S17A', tag: 'season-late', ep: 'S17E08', color: '#27AE60', driveId: '1surYIMt9-5Lk7XeRZYP1JtbRskj-3Owr' },
+  { title: 'Doraemon S17E09', season: 'S17A', tag: 'season-late', ep: 'S17E09', color: '#2ECC71', driveId: '1TPD8WgMLhzHjEJLasRXVmL5LEXFo9JJ1' },
+  { title: 'Doraemon S17E10', season: 'S17A', tag: 'season-late', ep: 'S17E10', color: '#27AE60', driveId: '1cLw3sNjccZmN8CEMTAyqy23_TI3plFAU' },
+  { title: 'Doraemon S17E11', season: 'S17A', tag: 'season-late', ep: 'S17E11', color: '#2ECC71', driveId: '1jTVAEgdXtKaqydatFSZu17SYAZHm16bq' },
+  { title: 'Doraemon S17E12', season: 'S17A', tag: 'season-late', ep: 'S17E12', color: '#27AE60', driveId: '1YxNtTHzTJv8Hw-iteAJHDm92pb3x3KiW' },
+  { title: 'Doraemon S17E13', season: 'S17A', tag: 'season-late', ep: 'S17E13', color: '#2ECC71', driveId: '1A8Z_QmDfgwJlJZ93tna5r0Og8t4lc3EP' },
+  { title: 'Doraemon S17E14', season: 'S17A', tag: 'season-late', ep: 'S17E14', color: '#27AE60', driveId: '1cUCibpoODICKbaoQKJ3xkz38jczvsu8V' },
+  { title: 'Doraemon S17E15', season: 'S17A', tag: 'season-late', ep: 'S17E15', color: '#2ECC71', driveId: '1q6DgSE-NtPJvov2CgEZsGMXkCQUWxCpT' },
+  { title: 'Doraemon S17E16', season: 'S17A', tag: 'season-late', ep: 'S17E16', color: '#27AE60', driveId: '1v2vAG0uj0rUCmisblhGXkNH9iKlTIkAl' },
+  { title: 'Doraemon S17E17', season: 'S17A', tag: 'season-late', ep: 'S17E17', color: '#2ECC71', driveId: '1o16P1cFpckB-SMOQrCKk27c1GxBnCTBs' },
+  { title: 'Doraemon S17E18', season: 'S17A', tag: 'season-late', ep: 'S17E18', color: '#27AE60', driveId: '10yDfeFQMfTf42XROJl1ugpAS_ztOIjW2' },
+  { title: 'Doraemon S17E19', season: 'S17A', tag: 'season-late', ep: 'S17E19', color: '#2ECC71', driveId: '1smPwmQ8M6W1dva1vJNM1lXOia-WqX35X' },
+  { title: 'Doraemon S17E20', season: 'S17A', tag: 'season-late', ep: 'S17E20', color: '#27AE60', driveId: '1MpBdv-hk36QHeKvjpoOLu4q5QPf0Z2VQ' },
+  { title: 'Doraemon S17E21', season: 'S17A', tag: 'season-late', ep: 'S17E21', color: '#2ECC71', driveId: '1W91EWg71vIDpQDVIWs1aK7xDU5EodeR-' },
+  { title: 'Doraemon S17E22', season: 'S17A', tag: 'season-late', ep: 'S17E22', color: '#27AE60', driveId: '1EqRyq4RZAItC2LVfVY7zWHc1jFH-XqD7' },
+  { title: 'Doraemon S17E23', season: 'S17A', tag: 'season-late', ep: 'S17E23', color: '#2ECC71', driveId: '1BkUjZdEOJA7P4BFOGe1r4iqzvdzKwPoc' },
+  { title: 'Doraemon S17E24', season: 'S17A', tag: 'season-late', ep: 'S17E24', color: '#27AE60', driveId: '1cwVKXDS1_CE1u30sxC349C7Tq8KbgWCT' },
+  { title: 'Doraemon S17E25', season: 'S17A', tag: 'season-late', ep: 'S17E25', color: '#2ECC71', driveId: '1jQWs3qTagEkMrgQ-piad_mCQY4Srxiv-' },
+  { title: 'Doraemon S17E26', season: 'S17A', tag: 'season-late', ep: 'S17E26', color: '#27AE60', driveId: '1PRULINqHs405fJtKDXadj-RYtIDn2Ue3' },
+  { title: 'Doraemon S17E27', season: 'S17A', tag: 'season-late', ep: 'S17E27', color: '#2ECC71', driveId: '1Kp_FGXgz_ZWCqcuuVL0xXKOGJGxSb51W' },
+  { title: 'Doraemon S17E28', season: 'S17A', tag: 'season-late', ep: 'S17E28', color: '#27AE60', driveId: '1z-QrRLmhr9IIxGUd8IUuBIAUI81qrbAA' },
+  { title: 'Doraemon S17E29', season: 'S17A', tag: 'season-late', ep: 'S17E29', color: '#2ECC71', driveId: '1bmnA7eMZeOfCCjQSJqNmjX6HARcj9leD' },
+  { title: 'Doraemon S17E30', season: 'S17A', tag: 'season-late', ep: 'S17E30', color: '#27AE60', driveId: '1_7OArdxteFME2rWtZJErvEg6O5BTSmmI' },
+  { title: 'Doraemon S17E31', season: 'S17A', tag: 'season-late', ep: 'S17E31', color: '#2ECC71', driveId: '1Tx3TDYYdAlz2eU4di_deBTgZbZQTpbQs' },
+  { title: 'Doraemon S17E32', season: 'S17A', tag: 'season-late', ep: 'S17E32', color: '#27AE60', driveId: '1MbONF6yg944w6utvJbMgbOCnPUDEtHfL' },
+  { title: 'Doraemon S17E33', season: 'S17A', tag: 'season-late', ep: 'S17E33', color: '#2ECC71', driveId: '1W-8PTofZaznEei-64p8pkuI5PlsF4eh7' },
+  { title: 'Doraemon S17E34', season: 'S17A', tag: 'season-late', ep: 'S17E34', color: '#27AE60', driveId: '1qO8HP92kZd1KsnyM54pzrAXTHdgXFtdS' },
+  { title: 'Doraemon S17E35', season: 'S17A', tag: 'season-late', ep: 'S17E35', color: '#2ECC71', driveId: '15XH2G2M0IG2cww_vzNTTNkYw_7y_GXkp' },
+  // Season 17B (E36-E52) - from Google Drive
+  { title: 'Doraemon S17E36', season: 'S17B', tag: 'season-late', ep: 'S17E36', color: '#27AE60', driveId: '1ilFUFbW_bVHzjyFQKtyy03vKIcU4fhCy' },
+  { title: 'Doraemon S17E37', season: 'S17B', tag: 'season-late', ep: 'S17E37', color: '#2ECC71', driveId: '1mPkErebBUaSr3gvkBTq89rvQcZ7j1OAI' },
+  { title: 'Doraemon S17E38', season: 'S17B', tag: 'season-late', ep: 'S17E38', color: '#27AE60', driveId: '18mPri4OJfrZojYbc0_tYopRm8UP4Hd10' },
+  { title: 'Doraemon S17E39', season: 'S17B', tag: 'season-late', ep: 'S17E39', color: '#2ECC71', driveId: '13rmnWmAkgYsDRs7Jd_PtZgHBdm1aZkUo' },
+  { title: 'Doraemon S17E40', season: 'S17B', tag: 'season-late', ep: 'S17E40', color: '#27AE60', driveId: '1M8F5vHPB0c496eXO5x1uyfwnJ5x_L2F3' },
+  { title: 'Doraemon S17E41', season: 'S17B', tag: 'season-late', ep: 'S17E41', color: '#2ECC71', driveId: '1cVhmKMvKTACKSFcZbSMCPob0K3X2Rgp8' },
+  { title: 'Doraemon S17E42', season: 'S17B', tag: 'season-late', ep: 'S17E42', color: '#27AE60', driveId: '1HuHpU3azBMwaimg-Ix2M29fB16wC8nsv' },
+  { title: 'Doraemon S17E43', season: 'S17B', tag: 'season-late', ep: 'S17E43', color: '#2ECC71', driveId: '1wIuay0zKtUq39f7xGhADvvggMshVn0DZ' },
+  { title: 'Doraemon S17E44', season: 'S17B', tag: 'season-late', ep: 'S17E44', color: '#27AE60', driveId: '1pmPOzH0TUQ7J3kQ1yqF6i7nej2lv79UY' },
+  { title: 'Doraemon S17E45', season: 'S17B', tag: 'season-late', ep: 'S17E45', color: '#2ECC71', driveId: '1MXVN6unHb4GGTg7e0yG8kCFc_oPgOALW' },
+  { title: 'Doraemon S17E46', season: 'S17B', tag: 'season-late', ep: 'S17E46', color: '#27AE60', driveId: '1W2JTEJXO2Wq4Xuw86M-yxekNVETag5TI' },
+  { title: 'Doraemon S17E47', season: 'S17B', tag: 'season-late', ep: 'S17E47', color: '#2ECC71', driveId: '1eSC7Crq0rhqexWhW0fxvRKFh4N4ZzokD' },
+  { title: 'Doraemon S17E48', season: 'S17B', tag: 'season-late', ep: 'S17E48', color: '#27AE60', driveId: '1P2Aah8ChZ5FeuJQZg4cQ7PF7w0aiLMDV' },
+  { title: 'Doraemon S17E49', season: 'S17B', tag: 'season-late', ep: 'S17E49', color: '#2ECC71', driveId: '19cdfTa7O0VSCIR2F0_3taLIwdkYj14ME' },
+  { title: 'Doraemon S17E50', season: 'S17B', tag: 'season-late', ep: 'S17E50', color: '#27AE60', driveId: '1zRe-9qNFGRIzbruKZbU4sWw89lpLrCLm' },
+  { title: 'Doraemon S17E51', season: 'S17B', tag: 'season-late', ep: 'S17E51', color: '#2ECC71', driveId: '1bMKF7t52Tf_aAJLR9qia5Ack_IM-tnud' },
+  { title: 'Doraemon S17E52', season: 'S17B', tag: 'season-late', ep: 'S17E52', color: '#27AE60', driveId: '1r49n1ZaP3lZkCAI4OcEVBNLmtIh7PYSe' },
+  // Season 18A (E01-E27) - from Google Drive
+  { title: 'Doraemon S18E01', season: 'S18A', tag: 'season-late', ep: 'S18E01', color: '#F39C12', driveId: '1H-tuxcYEpzr6BFv4hi8pfXBqjdaFG2kD' },
+  { title: 'Doraemon S18E02', season: 'S18A', tag: 'season-late', ep: 'S18E02', color: '#E67E22', driveId: '1ca7yuhSNdHcVTKlaLrmiYVrhnUeUMQ-c' },
+  { title: 'Doraemon S18E03', season: 'S18A', tag: 'season-late', ep: 'S18E03', color: '#F39C12', driveId: '1V4WbToFosC5fm4KYOu6kFtyACP-ZigoI' },
+  { title: 'Doraemon S18E04', season: 'S18A', tag: 'season-late', ep: 'S18E04', color: '#E67E22', driveId: '15BJfBmewF6Oilr1Uzq-HVjtJPZheqR5y' },
+  { title: 'Doraemon S18E05', season: 'S18A', tag: 'season-late', ep: 'S18E05', color: '#F39C12', driveId: '17moTAV6LsptFO81DoaKXdlYx20emsG0J' },
+  { title: 'Doraemon S18E06', season: 'S18A', tag: 'season-late', ep: 'S18E06', color: '#E67E22', driveId: '1Cozwp5c6znrRdWvUiMjgR3AhzGZyrfSq' },
+  { title: 'Doraemon S18E07', season: 'S18A', tag: 'season-late', ep: 'S18E07', color: '#F39C12', driveId: '1f8z-kFH3QxdXoqjFfWgA6t3a30mnznus' },
+  { title: 'Doraemon S18E08', season: 'S18A', tag: 'season-late', ep: 'S18E08', color: '#E67E22', driveId: '1tgZ3wa6OpqwsCusQvg2lJqXEceCqp_Gr' },
+  { title: 'Doraemon S18E09', season: 'S18A', tag: 'season-late', ep: 'S18E09', color: '#F39C12', driveId: '19DbiRVy21EcBav-Ah7al4xegwQQA39c9' },
+  { title: 'Doraemon S18E10', season: 'S18A', tag: 'season-late', ep: 'S18E10', color: '#E67E22', driveId: '1YOmN3rjHaMsusNDpdoYmZy3_VHsm2tJI' },
+  { title: 'Doraemon S18E11', season: 'S18A', tag: 'season-late', ep: 'S18E11', color: '#F39C12', driveId: '1t6gDksgV2sISY4oEwAA4B0hBKMKBSKst' },
+  { title: 'Doraemon S18E12', season: 'S18A', tag: 'season-late', ep: 'S18E12', color: '#E67E22', driveId: '1_llx8z6WKmM6k8HAjMzSjTl5sKeZkfpN' },
+  { title: 'Doraemon S18E13', season: 'S18A', tag: 'season-late', ep: 'S18E13', color: '#F39C12', driveId: '1gqTUgtFIl3v3AgdhK2Jlq0DKJ_GpeSv4' },
+  { title: 'Doraemon S18E14', season: 'S18A', tag: 'season-late', ep: 'S18E14', color: '#E67E22', driveId: '1Ezk71OWKfmP3NaG46oF4YgpL1_PagSzl' },
+  { title: 'Doraemon S18E15', season: 'S18A', tag: 'season-late', ep: 'S18E15', color: '#F39C12', driveId: '1EZN3ejKHyCn7ZouiadwFwdtyTZo0S4ZY' },
+  { title: 'Doraemon S18E16', season: 'S18A', tag: 'season-late', ep: 'S18E16', color: '#E67E22', driveId: '14kTrX49NYRzuba-0-wbyE-QF-Khc4UHp' },
+  { title: 'Doraemon S18E17', season: 'S18A', tag: 'season-late', ep: 'S18E17', color: '#F39C12', driveId: '12RqE45zP70Fr_ia9mX-qT4jhcBjZr29j' },
+  { title: 'Doraemon S18E18', season: 'S18A', tag: 'season-late', ep: 'S18E18', color: '#E67E22', driveId: '1F_iAgmS5Dj9CGH96A7AgMg-tUqag9ZrG' },
+  { title: 'Doraemon S18E19', season: 'S18A', tag: 'season-late', ep: 'S18E19', color: '#F39C12', driveId: '1gv8iwR4ccBMGbD1C5ROZ9l4MQtI3KLQe' },
+  { title: 'Doraemon S18E20', season: 'S18A', tag: 'season-late', ep: 'S18E20', color: '#E67E22', driveId: '1FDa65oSzcXMMHyfEB7fz8v58FsEjHd7U' },
+  { title: 'Doraemon S18E21', season: 'S18A', tag: 'season-late', ep: 'S18E21', color: '#F39C12', driveId: '1VKBCK6iuytH1dPFh2QBHIXYFdyRgfISO' },
+  { title: 'Doraemon S18E22', season: 'S18A', tag: 'season-late', ep: 'S18E22', color: '#E67E22', driveId: '1sD0oSenTrD1XkzixRXLTps84O-06sYht' },
+  { title: 'Doraemon S18E23', season: 'S18A', tag: 'season-late', ep: 'S18E23', color: '#F39C12', driveId: '1tezNXY1DrzGegS9lcvBfT9Qnf9-Ogr_4' },
+  { title: 'Doraemon S18E24', season: 'S18A', tag: 'season-late', ep: 'S18E24', color: '#E67E22', driveId: '1H4YFOlgGtcK-10aYlAMG558Jtc-hXyfR' },
+  { title: 'Doraemon S18E25', season: 'S18A', tag: 'season-late', ep: 'S18E25', color: '#F39C12', driveId: '1MefcCAA3f7E-IzM1BrfEBfdCcjWFty91' },
+  { title: 'Doraemon S18E26', season: 'S18A', tag: 'season-late', ep: 'S18E26', color: '#E67E22', driveId: '1I8Emr0XYogcqfFAI9N8gKTJgc7WJcto8' },
+  { title: 'Doraemon S18E27', season: 'S18A', tag: 'season-late', ep: 'S18E27', color: '#F39C12', driveId: '1M8BSI5zqctYULeApJYnWqzqaDm7ZtexJ' },
+  // Season 18B (E28-E52) - from Google Drive
+  { title: 'Doraemon S18E28', season: 'S18B', tag: 'season-late', ep: 'S18E28', color: '#D4AC0D', driveId: '18dPGJqOeigixjBQJzyaBCYYZEip5ZfgI' },
+  { title: 'Doraemon S18E29', season: 'S18B', tag: 'season-late', ep: 'S18E29', color: '#F0C30F', driveId: '1WQImaQy_J1SOa7lMHsRiNAzKz4WfOHii' },
+  { title: 'Doraemon S18E30', season: 'S18B', tag: 'season-late', ep: 'S18E30', color: '#D4AC0D', driveId: '1ZlpWn0ZdcwOcAt3nOTivi6qPOEI_JmqF' },
+  { title: 'Doraemon S18E31', season: 'S18B', tag: 'season-late', ep: 'S18E31', color: '#F0C30F', driveId: '18A6RzuORj2oePsoQDgBaefg0FpF2qp7g' },
+  { title: 'Doraemon S18E32', season: 'S18B', tag: 'season-late', ep: 'S18E32', color: '#D4AC0D', driveId: '1GQlbC8t4vALhBUIddORf7Befkw_ULTgY' },
+  { title: 'Doraemon S18E33', season: 'S18B', tag: 'season-late', ep: 'S18E33', color: '#F0C30F', driveId: '1ng8Mo7QIRSnNvANZrxxAMAnAodXrXmYR' },
+  { title: 'Doraemon S18E34', season: 'S18B', tag: 'season-late', ep: 'S18E34', color: '#D4AC0D', driveId: '1_Rby93BgMbNoqhBndMF8GNE94epImFeM' },
+  { title: 'Doraemon S18E35', season: 'S18B', tag: 'season-late', ep: 'S18E35', color: '#F0C30F', driveId: '1ZvJLHYQx8aUA-bNKvFQZ5GG1Y7ROG-kd' },
+  { title: 'Doraemon S18E36', season: 'S18B', tag: 'season-late', ep: 'S18E36', color: '#D4AC0D', driveId: '1q9YTvYthC5iBkxhJFVrWmCHTAB85KRc2' },
+  { title: 'Doraemon S18E37', season: 'S18B', tag: 'season-late', ep: 'S18E37', color: '#F0C30F', driveId: '1zq4TiVMcA33nFLsT5r6nBMatYDhY6eZ_' },
+  { title: 'Doraemon S18E38', season: 'S18B', tag: 'season-late', ep: 'S18E38', color: '#D4AC0D', driveId: '11fl3Y3BShV-ZZkucjeqCZj1w0eZs0vNi' },
+  { title: 'Doraemon S18E39', season: 'S18B', tag: 'season-late', ep: 'S18E39', color: '#F0C30F', driveId: '1DxbbUk7xizn3gjHxFoOEWnWEFTH1wNrY' },
+  { title: 'Doraemon S18E40', season: 'S18B', tag: 'season-late', ep: 'S18E40', color: '#D4AC0D', driveId: '14QAWxkizvs9b9G0bTdcnjr31rCdP1myC' },
+  { title: 'Doraemon S18E41', season: 'S18B', tag: 'season-late', ep: 'S18E41', color: '#F0C30F', driveId: '1Ebwfv-wbOxuW0CjkdkJB8MTWWdPB2w4N' },
+  { title: 'Doraemon S18E42', season: 'S18B', tag: 'season-late', ep: 'S18E42', color: '#D4AC0D', driveId: '15rPpL5d7KA5qI52hy43UwVUQwURBPEH1' },
+  { title: 'Doraemon S18E43', season: 'S18B', tag: 'season-late', ep: 'S18E43', color: '#F0C30F', driveId: '1gyBGAP1R44G7KIRuBsEVDNgAwSK5U9-6' },
+  { title: 'Doraemon S18E44', season: 'S18B', tag: 'season-late', ep: 'S18E44', color: '#D4AC0D', driveId: '1kCoe1lNDfkFW4OdVsb3CTmtCU_GAv0sL' },
+  { title: 'Doraemon S18E45', season: 'S18B', tag: 'season-late', ep: 'S18E45', color: '#F0C30F', driveId: '1pnmAyLXqKsVsidFB837GMxyZM0TIXVPV' },
+  { title: 'Doraemon S18E46', season: 'S18B', tag: 'season-late', ep: 'S18E46', color: '#D4AC0D', driveId: '1aCUQ3Vt8natBb7MourXV2bIanQo6XNMa' },
+  { title: 'Doraemon S18E47', season: 'S18B', tag: 'season-late', ep: 'S18E47', color: '#F0C30F', driveId: '1rlj-Z-ugXrqFVLBfT_FcC29mzbvq_GGt' },
+  { title: 'Doraemon S18E48', season: 'S18B', tag: 'season-late', ep: 'S18E48', color: '#D4AC0D', driveId: '1JEDERUF_mqH1UqZG66McovFJz6Q-264z' },
+  { title: 'Doraemon S18E49', season: 'S18B', tag: 'season-late', ep: 'S18E49', color: '#F0C30F', driveId: '11WNrx_1Jtn2r2chRZCpf-gj1B4aDG0Ur' },
+  { title: 'Doraemon S18E50', season: 'S18B', tag: 'season-late', ep: 'S18E50', color: '#D4AC0D', driveId: '128XpVA_0u1BqZPrOZFWyAlQ-FlHScjYo' },
+  { title: 'Doraemon S18E51', season: 'S18B', tag: 'season-late', ep: 'S18E51', color: '#F0C30F', driveId: '1drPH0XuyaRTPrF6Qnhj0PjTyUN20kc04' },
+  { title: 'Doraemon S18E52', season: 'S18B', tag: 'season-late', ep: 'S18E52', color: '#D4AC0D', driveId: '1pEvITTzU-EigDhCzfa-BMXRK4EoHRbM6' },
+  // Season 19 (52 episodes) - from Google Drive
+  { title: 'Doraemon S19E01', season: 'S19', tag: 'season-late', ep: 'S19E01', color: '#8E44AD', driveId: '1s1I7sbuD_laMJBsxFRbjvLAY2lxePIkR' },
+  { title: 'Doraemon S19E02', season: 'S19', tag: 'season-late', ep: 'S19E02', color: '#7D3C98', driveId: '1FzmYS41cIDtz87Z8SAqaHMbageH_Ftvz' },
+  { title: 'Doraemon S19E03', season: 'S19', tag: 'season-late', ep: 'S19E03', color: '#8E44AD', driveId: '1o55OrCgNf8Exshf8wlOP_gxZH7Fil_dF' },
+  { title: 'Doraemon S19E04', season: 'S19', tag: 'season-late', ep: 'S19E04', color: '#7D3C98', driveId: '1W3CV4fPjhT64aKG6vQVPm2czclxWt_XM' },
+  { title: 'Doraemon S19E05', season: 'S19', tag: 'season-late', ep: 'S19E05', color: '#8E44AD', driveId: '1vibkzfC1yQ40lOPSuqt9Sip5c0vODnlW' },
+  { title: 'Doraemon S19E06', season: 'S19', tag: 'season-late', ep: 'S19E06', color: '#7D3C98', driveId: '1Ir6uyVfneo5RpwQLit7JClbbXn8C6Zgb' },
+  { title: 'Doraemon S19E07', season: 'S19', tag: 'season-late', ep: 'S19E07', color: '#8E44AD', driveId: '1R7eDvciJoMupSuIgW5kVPsNKRQlFd23H' },
+  { title: 'Doraemon S19E08', season: 'S19', tag: 'season-late', ep: 'S19E08', color: '#7D3C98', driveId: '1B67_hIlw7eQEOIq3Ggrg-H_q5uKPpHLT' },
+  { title: 'Doraemon S19E09', season: 'S19', tag: 'season-late', ep: 'S19E09', color: '#8E44AD', driveId: '1IHnCyLshqRSUYahq8HbwpOe0aIAx11j2' },
+  { title: 'Doraemon S19E10', season: 'S19', tag: 'season-late', ep: 'S19E10', color: '#7D3C98', driveId: '1AbiPGtnM5r_HQxmI-uLQOC0xAsUgP5Eb' },
+  { title: 'Doraemon S19E11', season: 'S19', tag: 'season-late', ep: 'S19E11', color: '#8E44AD', driveId: '11L7cVaMBqt4CofRs9dM92Dr-S4nW5Uu2' },
+  { title: 'Doraemon S19E12', season: 'S19', tag: 'season-late', ep: 'S19E12', color: '#7D3C98', driveId: '1xQv3pAJYM27NCv8xZemehPqimlJeBVcp' },
+  { title: 'Doraemon S19E13', season: 'S19', tag: 'season-late', ep: 'S19E13', color: '#8E44AD', driveId: '1Z5ZZs4ulHjEO-nXKqaLxFUNAJrhUDApQ' },
+  { title: 'Doraemon S19E14', season: 'S19', tag: 'season-late', ep: 'S19E14', color: '#7D3C98', driveId: '1dvirvClAJbmt2SvgJ9Yl2T6zd0YB8JLl' },
+  { title: 'Doraemon S19E15', season: 'S19', tag: 'season-late', ep: 'S19E15', color: '#8E44AD', driveId: '1eHBBepN1ElOIHa8zFSdA8YWfHpoI2eXu' },
+  { title: 'Doraemon S19E16', season: 'S19', tag: 'season-late', ep: 'S19E16', color: '#7D3C98', driveId: '1ZGymaoeCoVleSM-sQuNZ1wpJigO-jzSx' },
+  { title: 'Doraemon S19E17', season: 'S19', tag: 'season-late', ep: 'S19E17', color: '#8E44AD', driveId: '1Li04I4gK6WmExWBR5NIefS0nNxFbP0bT' },
+  { title: 'Doraemon S19E18', season: 'S19', tag: 'season-late', ep: 'S19E18', color: '#7D3C98', driveId: '1sxeMwFHFym0JJljAP9XM6888RWQeYTvg' },
+  { title: 'Doraemon S19E19', season: 'S19', tag: 'season-late', ep: 'S19E19', color: '#8E44AD', driveId: '1KQGHwZ5603guKF7AjNU6pNa8H36y6oWm' },
+  { title: 'Doraemon S19E20', season: 'S19', tag: 'season-late', ep: 'S19E20', color: '#7D3C98', driveId: '1iH0kW0pNFpGfANSgLg91hJm8b9Uxi8na' },
+  { title: 'Doraemon S19E21', season: 'S19', tag: 'season-late', ep: 'S19E21', color: '#8E44AD', driveId: '1GiO6KhXVFxPHVS6mafBISHG3LpCsBgBx' },
+  { title: 'Doraemon S19E22', season: 'S19', tag: 'season-late', ep: 'S19E22', color: '#7D3C98', driveId: '1kzayQExbrhGz9pWkXyFbt-PCDvBBmwXo' },
+  { title: 'Doraemon S19E23', season: 'S19', tag: 'season-late', ep: 'S19E23', color: '#8E44AD', driveId: '1XjRNywo_03nEoXCLMuro_z0paU-hG8Qm' },
+  { title: 'Doraemon S19E24', season: 'S19', tag: 'season-late', ep: 'S19E24', color: '#7D3C98', driveId: '1tyvkOL_Re2gA7gXA73X1fXtoqf_8EZJ1' },
+  { title: 'Doraemon S19E25', season: 'S19', tag: 'season-late', ep: 'S19E25', color: '#8E44AD', driveId: '1-vJ9qR8cCgtvdBMJzy1t-8R5onlxt3wn' },
+  { title: 'Doraemon S19E26', season: 'S19', tag: 'season-late', ep: 'S19E26', color: '#7D3C98', driveId: '1exULL_hVno9p53to11N7RwHw73OjvKCG' },
+  { title: 'Doraemon S19E27', season: 'S19', tag: 'season-late', ep: 'S19E27', color: '#8E44AD', driveId: '1bwEFuUguBp_NVZNovVGjCFojixyS84BH' },
+  { title: 'Doraemon S19E28', season: 'S19', tag: 'season-late', ep: 'S19E28', color: '#7D3C98', driveId: '1XbiCgNvqY2fLSvfMwntMjimSYtCELuen' },
+  { title: 'Doraemon S19E29', season: 'S19', tag: 'season-late', ep: 'S19E29', color: '#8E44AD', driveId: '11brvwiqG9FzGf0ydu8qPIgMVrYcTX3DO' },
+  { title: 'Doraemon S19E30', season: 'S19', tag: 'season-late', ep: 'S19E30', color: '#7D3C98', driveId: '1ePHRsuFVXqkAUtScvBcpBliXaatxMsV-' },
+  { title: 'Doraemon S19E31', season: 'S19', tag: 'season-late', ep: 'S19E31', color: '#8E44AD', driveId: '1DP_PIHEIYZCt-mqusWxzh9WT4cVrBjhS' },
+  { title: 'Doraemon S19E33', season: 'S19', tag: 'season-late', ep: 'S19E33', color: '#7D3C98', driveId: '130dYORv_1knN7kDuNo9ggncgBR7QIMQa' },
+  { title: 'Doraemon S19E34', season: 'S19', tag: 'season-late', ep: 'S19E34', color: '#8E44AD', driveId: '1dMAazKQwUMZQ0S0G4_hsTbQuiqiZCVTM' },
+  { title: 'Doraemon S19E35', season: 'S19', tag: 'season-late', ep: 'S19E35', color: '#7D3C98', driveId: '1HJUYHzeNgwKVyXAln1BHHlA5EQiIEuBe' },
+  { title: 'Doraemon S19E36', season: 'S19', tag: 'season-late', ep: 'S19E36', color: '#8E44AD', driveId: '1qPfXtdbQqo4i4W8b5TBvYQd1jkIosZ3D' },
+  { title: 'Doraemon S19E37', season: 'S19', tag: 'season-late', ep: 'S19E37', color: '#7D3C98', driveId: '1zywFf5IDxdss4hKZihGewtGsB5tXCjrq' },
+  { title: 'Doraemon S19E38', season: 'S19', tag: 'season-late', ep: 'S19E38', color: '#8E44AD', driveId: '1qz7IbnN_jreI2YqkKKgT5GfsvkveLbdU' },
+  { title: 'Doraemon S19E39', season: 'S19', tag: 'season-late', ep: 'S19E39', color: '#7D3C98', driveId: '14ePRxNvmAA5svuvYnnfoB8hD1aiiqQK6' },
+  { title: 'Doraemon S19E40', season: 'S19', tag: 'season-late', ep: 'S19E40', color: '#8E44AD', driveId: '17H0dw77BjmbQZ4IlNhlJz856VAiF4ozE' },
+  { title: 'Doraemon S19E41', season: 'S19', tag: 'season-late', ep: 'S19E41', color: '#7D3C98', driveId: '1FyojXBwQscp4F-KuN25Z0djCXJVLiFJ7' },
+  { title: 'Doraemon S19E42', season: 'S19', tag: 'season-late', ep: 'S19E42', color: '#8E44AD', driveId: '1PXF9Bwr1plLibAA1DoVLEXbYvaFL571X' },
+  { title: 'Doraemon S19E43', season: 'S19', tag: 'season-late', ep: 'S19E43', color: '#7D3C98', driveId: '17mVDjBMeamyFo-NT_SbqhERGCHPJjqtC' },
+  { title: 'Doraemon S19E44', season: 'S19', tag: 'season-late', ep: 'S19E44', color: '#8E44AD', driveId: '18qwZaL4Y5vTCJLTFb0MmRJhx8UxM80aX' },
+  { title: 'Doraemon S19E45', season: 'S19', tag: 'season-late', ep: 'S19E45', color: '#7D3C98', driveId: '1WY8Tym0NnhS6owp5PaOcPxWyPQ8YnoZ0' },
+  { title: 'Doraemon S19E46', season: 'S19', tag: 'season-late', ep: 'S19E46', color: '#8E44AD', driveId: '1GDDowcYaIFDz_4i6NHACIHBRvEGYL6an' },
+  { title: 'Doraemon S19E47', season: 'S19', tag: 'season-late', ep: 'S19E47', color: '#7D3C98', driveId: '18VIX17-icgxrxd6lGaV2xQy3mwAojP6L' },
+  { title: 'Doraemon S19E48', season: 'S19', tag: 'season-late', ep: 'S19E48', color: '#8E44AD', driveId: '1-H_lb60INio8LvypLXuBGxLhbJJ0rgLi' },
+  { title: 'Doraemon S19E49', season: 'S19', tag: 'season-late', ep: 'S19E49', color: '#7D3C98', driveId: '1iduAARwcYwmHT_ZgGHWzZFDRvkq05z0Z' },
+  { title: 'Doraemon S19E50', season: 'S19', tag: 'season-late', ep: 'S19E50', color: '#8E44AD', driveId: '1xljIi8JU-d51k7dUUANcULCrjtH4EN5X' },
+  { title: 'Doraemon S19E51', season: 'S19', tag: 'season-late', ep: 'S19E51', color: '#7D3C98', driveId: '1M3fsWtAyoN-Jn5qyf0lfy1HrffRXq6AF' },
+  { title: 'Doraemon S19E52', season: 'S19', tag: 'season-late', ep: 'S19E52', color: '#8E44AD', driveId: '1qSMamIXDrXLY1zwbZwJYuzvjGyQ-YoiB' },
+  // Season 20A (E01-E34) - from Google Drive
+  { title: 'Doraemon S20E01', season: 'S20A', tag: 'season-late', ep: 'S20E01', color: '#C0392B', driveId: '1Cx0mLdxDI_OAweJu8pXlNvesUrny_R2G' },
+  { title: 'Doraemon S20E02', season: 'S20A', tag: 'season-late', ep: 'S20E02', color: '#A93226', driveId: '12P13qHcHyNCcoJXZK_w835xVoxP6-vO_' },
+  { title: 'Doraemon S20E03', season: 'S20A', tag: 'season-late', ep: 'S20E03', color: '#C0392B', driveId: '1ugpkVY6kPZOKBJ3NhMZFkH0UZ2CS0tBL' },
+  { title: 'Doraemon S20E04', season: 'S20A', tag: 'season-late', ep: 'S20E04', color: '#A93226', driveId: '1TsYxa_A8lNpWjXUkgFQhw3o1fHTK4VIz' },
+  { title: 'Doraemon S20E05', season: 'S20A', tag: 'season-late', ep: 'S20E05', color: '#C0392B', driveId: '138ICy7ZChsDs7-n7S2nhT-O22YJFc0F0' },
+  { title: 'Doraemon S20E06', season: 'S20A', tag: 'season-late', ep: 'S20E06', color: '#A93226', driveId: '1OtH3lupCTZp-IR-DbNX8_2Z2cF-4lOG6' },
+  { title: 'Doraemon S20E07', season: 'S20A', tag: 'season-late', ep: 'S20E07', color: '#C0392B', driveId: '1d8tmmPkRR2HOQSaSlpYVW0YbCT9W9bCE' },
+  { title: 'Doraemon S20E08', season: 'S20A', tag: 'season-late', ep: 'S20E08', color: '#A93226', driveId: '1fLhELYq_k03m-Ihv6Qg9rnKPdYWjshAr' },
+  { title: 'Doraemon S20E09', season: 'S20A', tag: 'season-late', ep: 'S20E09', color: '#C0392B', driveId: '1aKqVmZq-0h2SuHWJj6oHML4phOqNEFni' },
+  { title: 'Doraemon S20E10', season: 'S20A', tag: 'season-late', ep: 'S20E10', color: '#A93226', driveId: '1PUFoArGSWniYxpo7NNolk7nvebxtArqw' },
+  { title: 'Doraemon S20E11', season: 'S20A', tag: 'season-late', ep: 'S20E11', color: '#C0392B', driveId: '1ysFiwxRR7XXlB5ONAupC8PGStxjKV88g' },
+  { title: 'Doraemon S20E12', season: 'S20A', tag: 'season-late', ep: 'S20E12', color: '#A93226', driveId: '1pua5RIF7DOXGcWmGkj2isvrKMn8_cDIe' },
+  { title: 'Doraemon S20E13', season: 'S20A', tag: 'season-late', ep: 'S20E13', color: '#C0392B', driveId: '1NPEpFWRFl3UAyZfTCvVYxjQxX_g2a33Z' },
+  { title: 'Doraemon S20E14', season: 'S20A', tag: 'season-late', ep: 'S20E14', color: '#A93226', driveId: '1nh3z2sDPT14YXWsTOvUQ9oJZKERuOCaK' },
+  { title: 'Doraemon S20E15', season: 'S20A', tag: 'season-late', ep: 'S20E15', color: '#C0392B', driveId: '16lsnD4cIcxd6iV7-zd6k6Vtgvyt-csrW' },
+  { title: 'Doraemon S20E16', season: 'S20A', tag: 'season-late', ep: 'S20E16', color: '#A93226', driveId: '1fCUWQwS-1iEnyVby2_l3VgwG5-gegaAW' },
+  { title: 'Doraemon S20E17', season: 'S20A', tag: 'season-late', ep: 'S20E17', color: '#C0392B', driveId: '1iu8qOj3y84kM7Os3KVwPc8u54vBPvRV0' },
+  { title: 'Doraemon S20E18', season: 'S20A', tag: 'season-late', ep: 'S20E18', color: '#A93226', driveId: '169uSTpglgCZvMr0-R6Kvzp8Qf3CbYqfb' },
+  { title: 'Doraemon S20E19', season: 'S20A', tag: 'season-late', ep: 'S20E19', color: '#C0392B', driveId: '1iuGWwwP2mDpSP-MFahKBxMpQerbBvUHH' },
+  { title: 'Doraemon S20E20', season: 'S20A', tag: 'season-late', ep: 'S20E20', color: '#A93226', driveId: '1im7Z5hQrQXcsWYo4r0ZrzPdUF_bxFzmJ' },
+  { title: 'Doraemon S20E21', season: 'S20A', tag: 'season-late', ep: 'S20E21', color: '#C0392B', driveId: '1BASWFsvUtEYJv-ZLmRxuFX_XiUDdqOfE' },
+  { title: 'Doraemon S20E22', season: 'S20A', tag: 'season-late', ep: 'S20E22', color: '#A93226', driveId: '1fgws5HqAxPllulYwQJq96MmWJIB4GmDg' },
+  { title: 'Doraemon S20E23', season: 'S20A', tag: 'season-late', ep: 'S20E23', color: '#C0392B', driveId: '1STd7sVfDWcmmQ61sOpJAn1zfmNV893Ax' },
+  { title: 'Doraemon S20E24', season: 'S20A', tag: 'season-late', ep: 'S20E24', color: '#A93226', driveId: '1qfwCKYW_B1gFdj0xj2jwKYd6-3FFToEd' },
+  { title: 'Doraemon S20E25', season: 'S20A', tag: 'season-late', ep: 'S20E25', color: '#C0392B', driveId: '1eykwZx95hEFqSd6XrA-cCLcLMmltmRjl' },
+  { title: 'Doraemon S20E26', season: 'S20A', tag: 'season-late', ep: 'S20E26', color: '#A93226', driveId: '1CckBES7D7TYDQHvnC5EEJY8ghLHNuoSE' },
+  { title: 'Doraemon S20E27', season: 'S20A', tag: 'season-late', ep: 'S20E27', color: '#C0392B', driveId: '17rnpX4iTH8QR8AcX0g7cVLPJbLMPxEjs' },
+  { title: 'Doraemon S20E28', season: 'S20A', tag: 'season-late', ep: 'S20E28', color: '#A93226', driveId: '13gv9YqlCiotaG7CcD4AdLhGykxUllo0Y' },
+  { title: 'Doraemon S20E29', season: 'S20A', tag: 'season-late', ep: 'S20E29', color: '#C0392B', driveId: '1iP91lznrd98EwlEFIoJZYUykxq6eC3-r' },
+  { title: 'Doraemon S20E30', season: 'S20A', tag: 'season-late', ep: 'S20E30', color: '#A93226', driveId: '1s9hRAbyjwKQ53enDiXIYKsDi2RLxdnmI' },
+  { title: 'Doraemon S20E31', season: 'S20A', tag: 'season-late', ep: 'S20E31', color: '#C0392B', driveId: '19AsRwcpm5hAUdXccB9ZjSaJMhWrmzOhg' },
+  { title: 'Doraemon S20E32', season: 'S20A', tag: 'season-late', ep: 'S20E32', color: '#A93226', driveId: '1Jaa-teAP5MIDtcettrcNsnFWA_3GXxns' },
+  { title: 'Doraemon S20E33', season: 'S20A', tag: 'season-late', ep: 'S20E33', color: '#C0392B', driveId: '1VaFmtXAtrRTiC_zbs35liOLldNFkwWkp' },
+  { title: 'Doraemon S20E34', season: 'S20A', tag: 'season-late', ep: 'S20E34', color: '#A93226', driveId: '1wXzmC4-o8gPfRZm68NNcKFzGw_ouDXAD' },
+  // Season 20B (E35-E51) - from Google Drive
+  { title: 'Doraemon S20E35', season: 'S20B', tag: 'season-late', ep: 'S20E35', color: '#E74C3C', driveId: '1FIRNMDkhkGz6M_ko94av0w2EHABxY8Jz' },
+  { title: 'Doraemon S20E36', season: 'S20B', tag: 'season-late', ep: 'S20E36', color: '#CB4335', driveId: '1vhWMPYx1TVSj0LALMftUEdDUwbxOb7PM' },
+  { title: 'Doraemon S20E37', season: 'S20B', tag: 'season-late', ep: 'S20E37', color: '#E74C3C', driveId: '1IbDpMzwZils0RWBuKOBLomAauPmKYcnW' },
+  { title: 'Doraemon S20E38', season: 'S20B', tag: 'season-late', ep: 'S20E38', color: '#CB4335', driveId: '1NiJYFBs5pHYnmLX7FIOvWXdzuI68Qgac' },
+  { title: 'Doraemon S20E39', season: 'S20B', tag: 'season-late', ep: 'S20E39', color: '#E74C3C', driveId: '1qLTTSOzQ9zFlgb01Zvbitr6Fpk-9NV3E' },
+  { title: 'Doraemon S20E40', season: 'S20B', tag: 'season-late', ep: 'S20E40', color: '#CB4335', driveId: '1IIURl1jz9LBrLr2qj41l5AAjkoXOzKK3' },
+  { title: 'Doraemon S20E41', season: 'S20B', tag: 'season-late', ep: 'S20E41', color: '#E74C3C', driveId: '1knl5VFsUybBZhYnCnqYTkX1pmCFwOTog' },
+  { title: 'Doraemon S20E42', season: 'S20B', tag: 'season-late', ep: 'S20E42', color: '#CB4335', driveId: '1Xmx6MhK_wf2yJxyrzl2uiNBkq3-DlksI' },
+  { title: 'Doraemon S20E43', season: 'S20B', tag: 'season-late', ep: 'S20E43', color: '#E74C3C', driveId: '159zee7NhjD42Tnhr2XKH88nhwgi_iVem' },
+  { title: 'Doraemon S20E44', season: 'S20B', tag: 'season-late', ep: 'S20E44', color: '#CB4335', driveId: '1bh8xkJiFtJXpsMJN9teRYle-tsTJ__Zn' },
+  { title: 'Doraemon S20E45', season: 'S20B', tag: 'season-late', ep: 'S20E45', color: '#E74C3C', driveId: '1vBRdyD8qMhkRsc2C6oRH-lui8jdyn2di' },
+  { title: 'Doraemon S20E46', season: 'S20B', tag: 'season-late', ep: 'S20E46', color: '#CB4335', driveId: '1ZTUgKFdV1BYsm7fmWw_2e_YPeByG7bhp' },
+  { title: 'Doraemon S20E47', season: 'S20B', tag: 'season-late', ep: 'S20E47', color: '#E74C3C', driveId: '1u8kQDILpPE0favCVqkXG4sYzDHi6KkpJ' },
+  { title: 'Doraemon S20E48', season: 'S20B', tag: 'season-late', ep: 'S20E48', color: '#CB4335', driveId: '12Ui37uoXNZez18gTrYC3YXre1gmRGhus' },
+  { title: 'Doraemon S20E49', season: 'S20B', tag: 'season-late', ep: 'S20E49', color: '#E74C3C', driveId: '1Li2fdVAmcgQoOrh55PH8RGVQPOX9nA8P' },
+  { title: 'Doraemon S20E50', season: 'S20B', tag: 'season-late', ep: 'S20E50', color: '#CB4335', driveId: '18HgYkHWPqBSZ7YCYhnOsqkZvH_-Qwcnf' },
+  { title: 'Doraemon S20E51', season: 'S20B', tag: 'season-late', ep: 'S20E51', color: '#E74C3C', driveId: '1KkhO0pFOZQ7RzwBGE9EhbxOuEXIsF34M' },
+];
+
+let activeCategory = 'all';
+let videos = allEpisodes;
+
+function renderCategories() {
+  const grid = document.getElementById('category-grid');
+  grid.innerHTML = categories.map(c => `
+    <button onclick="setCategory('${c.tag}')" class="category-pill flex flex-col items-center gap-2 p-4 rounded-2xl border border-dora-blue/10 bg-dora-navy/60 ${activeCategory === c.tag ? 'active' : 'text-gray-300'} cursor-pointer">
+      <span class="text-2xl">${c.icon}</span>
+      <span class="font-bold text-xs">${c.name}</span>
+      <span class="text-[10px] text-gray-500">${c.count} eps</span>
+    </button>
+  `).join('');
+}
+
+// ===== SEASON DEFINITIONS =====
+// Each season gets a key, label, color, icon, and a filter function
+const SEASONS = [
+  { key: 'S1',  label: 'Season 1',   icon: '1️⃣',  color: '#2BA4E0', match: v => v.season === 'S1'  },
+  { key: 'S2',  label: 'Season 2',   icon: '2️⃣',  color: '#E8413C', match: v => v.season === 'S2'  },
+  { key: 'S3',  label: 'Season 3',   icon: '3️⃣',  color: '#FFD93D', match: v => v.season === 'S3'  },
+  { key: 'S4',  label: 'Season 4',   icon: '4️⃣',  color: '#2BA4E0', match: v => v.season === 'S4'  },
+  { key: 'S5',  label: 'Season 5',   icon: '5️⃣',  color: '#E8413C', match: v => v.season === 'S5'  },
+  { key: 'S6',  label: 'Season 6',   icon: '6️⃣',  color: '#FFD93D', match: v => v.season === 'S6'  },
+  { key: 'S7',  label: 'Season 7',   icon: '7️⃣',  color: '#2BA4E0', match: v => v.season === 'S7'  },
+  { key: 'S8',  label: 'Season 8',   icon: '8️⃣',  color: '#E8413C', match: v => v.season === 'S8'  },
+  { key: 'S14', label: 'Season 14',  icon: '📺',  color: '#9B59B6', match: v => v.season === 'S14' },
+  { key: 'S15', label: 'Season 15',  icon: '📺',  color: '#1ABC9C', match: v => v.season === 'S15' },
+  { key: 'S16', label: 'Season 16',  icon: '📺',  color: '#E67E22', match: v => v.season === 'S16' },
+  { key: 'S17A',label: 'Season 17A', icon: '📡',  color: '#2ECC71', match: v => v.season === 'S17A'},
+  { key: 'S17B',label: 'Season 17B', icon: '📡',  color: '#27AE60', match: v => v.season === 'S17B'},
+  { key: 'S18A',label: 'Season 18A', icon: '🌟',  color: '#F39C12', match: v => v.season === 'S18A'},
+  { key: 'S18B',label: 'Season 18B', icon: '🌟',  color: '#D4AC0D', match: v => v.season === 'S18B'},
+  { key: 'S19', label: 'Season 19',  icon: '🚀',  color: '#8E44AD', match: v => v.season === 'S19' },
+  { key: 'S20A',label: 'Season 20A', icon: '🎌',  color: '#C0392B', match: v => v.season === 'S20A'},
+  { key: 'S20B',label: 'Season 20B', icon: '🎌',  color: '#E74C3C', match: v => v.season === 'S20B'},
+];
+
+// Track which seasons are expanded
+const expandedSeasons = new Set(['S1']); // S1 open by default
+
+function makeVideoCard(v, i) {
+  return `
+    <div class="card-hover slide-up rounded-2xl overflow-hidden bg-dora-navy/80 border border-dora-blue/10 group" style="animation-delay:${Math.min(i,20) * 40}ms">
+      <button onclick="if(window.requireLoginToWatch && !window.requireLoginToWatch('${v.driveId}')){return;}window.open('${DRIVE_BASE}${v.driveId}${DRIVE_PREVIEW}', '_blank')" class="thumb-placeholder aspect-video relative flex items-center justify-center overflow-hidden w-full border-0 bg-none cursor-pointer" style="background:linear-gradient(135deg, ${v.color}33 0%, #0F2340 100%)">
+        <div class="absolute inset-0 flex items-center justify-center opacity-30 group-hover:opacity-50 transition">
+          <svg width="60" height="60" viewBox="0 0 100 100"><circle cx="50" cy="50" r="48" fill="${v.color}" opacity=".2"/><circle cx="50" cy="50" r="20" fill="${v.color}" opacity=".3"/></svg>
+        </div>
+        <div class="relative z-10 w-14 h-14 rounded-full bg-white/10 backdrop-blur flex items-center justify-center group-hover:bg-white/20 group-hover:scale-110 transition-all duration-300">
+          <i data-lucide="play" class="w-6 h-6 text-white ml-0.5"></i>
+        </div>
+        <span class="absolute top-3 left-3 text-[10px] font-bold px-2 py-0.5 rounded-md bg-black/50 text-white backdrop-blur">${v.ep}</span>
+        <span class="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-md text-white backdrop-blur" style="background:${v.color}99">${v.season}</span>
+      </button>
+      <div class="p-4">
+        <h3 class="font-bold text-sm text-white leading-snug line-clamp-2 group-hover:text-dora-blue transition">${v.title}</h3>
+        <p class="text-[11px] text-gray-500 mt-2 flex items-center gap-2">
+          <i data-lucide="clock" class="w-3 h-3"></i> 22 min
+        </p>
+      </div>
+    </div>`;
+}
+
+function renderSeasonSections(episodeList) {
+  const container = document.getElementById('season-sections');
+  const noRes = document.getElementById('no-results');
+  let totalShown = 0;
+  let html = '';
+
+  SEASONS.forEach(s => {
+    const eps = episodeList.filter(s.match);
+    if (!eps.length) return;
+    totalShown += eps.length;
+    const isOpen = expandedSeasons.has(s.key);
+    html += `
+      <div class="mb-4 rounded-2xl overflow-hidden border border-white/5 bg-dora-navy/40" id="season-block-${s.key}">
+        <!-- Season Header -->
+        <button onclick="toggleSeason('${s.key}')"
+          class="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors duration-200 group">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0"
+              style="background:${s.color}22;border:1px solid ${s.color}44;">${s.icon}</span>
+            <div class="text-left">
+              <span class="font-heading text-base text-white group-hover:text-dora-blue transition">${s.label}</span>
+              <span class="ml-3 text-xs text-gray-500">${eps.length} episode${eps.length!==1?'s':''}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="hidden sm:flex gap-1 flex-wrap max-w-[200px]">
+              ${eps.slice(0,6).map(e=>`<span class="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500 font-mono">${e.ep}</span>`).join('')}
+              ${eps.length>6?`<span class="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-gray-500">+${eps.length-6}</span>`:''}
+            </div>
+            <span id="chevron-${s.key}" class="text-gray-400 transition-transform duration-300 ${isOpen?'rotate-180':''}">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 9l6 6 6-6"/></svg>
+            </span>
+          </div>
+        </button>
+        <!-- Episode Grid -->
+        <div id="season-grid-${s.key}" class="overflow-hidden transition-all duration-300" style="${isOpen?'':'display:none;'}">
+          <div class="px-4 pb-5 pt-1">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              ${eps.map((v,i) => makeVideoCard(v,i)).join('')}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  });
+
+  document.getElementById('video-count').textContent = totalShown;
+  if (!totalShown) {
+    container.innerHTML = '';
+    noRes.classList.remove('hidden');
+  } else {
+    container.innerHTML = html;
+    noRes.classList.add('hidden');
+    lucide.createIcons();
+  }
+}
+
+function toggleSeason(key) {
+  const grid = document.getElementById('season-grid-' + key);
+  const chev = document.getElementById('chevron-' + key);
+  if (!grid) return;
+  if (grid.style.display === 'none') {
+    grid.style.display = 'block';
+    expandedSeasons.add(key);
+    if (chev) chev.style.transform = 'rotate(180deg)';
+  } else {
+    grid.style.display = 'none';
+    expandedSeasons.delete(key);
+    if (chev) chev.style.transform = 'rotate(0deg)';
+  }
+}
+
+function expandAllSeasons() {
+  SEASONS.forEach(s => {
+    expandedSeasons.add(s.key);
+    const g = document.getElementById('season-grid-' + s.key);
+    const c = document.getElementById('chevron-' + s.key);
+    if (g) { g.style.display = 'block'; }
+    if (c) c.style.transform = 'rotate(180deg)';
+  });
+}
+
+function collapseAllSeasons() {
+  SEASONS.forEach(s => {
+    expandedSeasons.delete(s.key);
+    const g = document.getElementById('season-grid-' + s.key);
+    const c = document.getElementById('chevron-' + s.key);
+    if (g) g.style.display = 'none';
+    if (c) c.style.transform = 'rotate(0deg)';
+  });
+}
+
+// renderVideos: used during search (flat grid)
+function renderVideos(list) {
+  const flatGrid = document.getElementById('video-grid');
+  const seasonSec = document.getElementById('season-sections');
+  const searchSec = document.getElementById('search-results-section');
+  const noRes = document.getElementById('no-results');
+  document.getElementById('video-count').textContent = list.length;
+  if (!list.length) {
+    flatGrid.innerHTML = '';
+    noRes.classList.remove('hidden');
+    return;
+  }
+  noRes.classList.add('hidden');
+  flatGrid.innerHTML = list.map((v, i) => makeVideoCard(v, i)).join('');
+  lucide.createIcons();
+}
+
+function setCategory(tag) {
+  activeCategory = tag;
+  renderCategories();
+  filterVideos();
+}
+
+function filterVideos() {
+  const q = document.getElementById('search-input').value.toLowerCase().trim();
+  const searchSec = document.getElementById('search-results-section');
+  const seasonSec = document.getElementById('season-sections');
+  let filtered = videos;
+  if (activeCategory !== 'all') filtered = filtered.filter(v => v.tag === activeCategory);
+
+  if (q) {
+    // Search mode: flat grid
+    filtered = filtered.filter(v => v.title.toLowerCase().includes(q) || v.ep.toLowerCase().includes(q) || v.season.toLowerCase().includes(q));
+    searchSec.classList.remove('hidden');
+    seasonSec.classList.add('hidden');
+    renderVideos(filtered);
+  } else {
+    // Normal mode: season accordion
+    searchSec.classList.add('hidden');
+    seasonSec.classList.remove('hidden');
+    renderSeasonSections(filtered);
+  }
+}
+
+// Mobile menu
+document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+  document.getElementById('mobile-menu').classList.toggle('hidden');
+});
+
+// Search
+document.getElementById('search-input').addEventListener('input', filterVideos);
+document.getElementById('search-btn').addEventListener('click', e => { e.preventDefault(); filterVideos(); });
+
+// Init — season accordion by default
+renderCategories();
+filterVideos();
+
+// Element SDK
+const defaultConfig = {
+  site_title: 'Doraemon Video Archive',
+  hero_subtitle: 'Search the 4D Pocket for any episode or movie!',
+  footer_text: '© 2024 Doraemon Archive — Fan Project. All rights belong to Fujiko F. Fujio Productions.',
+  background_color: '#0A1628',
+  surface_color: '#0F2340',
+  text_color: '#F8FBFF',
+  primary_action_color: '#2BA4E0',
+  secondary_action_color: '#E8413C',
+  font_family: 'Nunito',
+  font_size: 14,
+};
+
+function applyConfig(config) {
+  const c = { ...defaultConfig, ...config };
+  document.getElementById('hero-title').textContent = c.site_title;
+  document.getElementById('hero-sub').textContent = c.hero_subtitle;
+  document.getElementById('footer-text').textContent = c.footer_text;
+  document.body.style.backgroundColor = c.background_color;
+  document.body.style.color = c.text_color;
+  document.body.style.fontFamily = `${c.font_family}, Nunito, sans-serif`;
+  document.body.style.fontSize = c.font_size + 'px';
+}
+
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange: async (config) => applyConfig(config),
+  mapToCapabilities: (config) => ({
+    recolorables: [
+      { get: () => config.background_color || defaultConfig.background_color, set: v => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+      { get: () => config.surface_color || defaultConfig.surface_color, set: v => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+      { get: () => config.text_color || defaultConfig.text_color, set: v => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+      { get: () => config.primary_action_color || defaultConfig.primary_action_color, set: v => { config.primary_action_color = v; window.elementSdk.setConfig({ primary_action_color: v }); } },
+      { get: () => config.secondary_action_color || defaultConfig.secondary_action_color, set: v => { config.secondary_action_color = v; window.elementSdk.setConfig({ secondary_action_color: v }); } },
+    ],
+    borderables: [],
+    fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: v => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
+    fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: v => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } },
+  }),
+  mapToEditPanelValues: (config) => new Map([
+    ['site_title', config.site_title || defaultConfig.site_title],
+    ['hero_subtitle', config.hero_subtitle || defaultConfig.hero_subtitle],
+    ['footer_text', config.footer_text || defaultConfig.footer_text],
+  ]),
+});
+
+lucide.createIcons();
+</script>
+<!-- ===== LOGIN MODAL ===== -->
+<div id="login-modal" class="fixed inset-0 z-[999] flex items-center justify-center hidden">
+  <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeLoginModal()"></div>
+  <div class="relative bg-dora-navy border border-dora-blue/30 rounded-2xl p-8 w-full max-w-sm mx-4 shadow-2xl slide-up">
+    <div class="text-center mb-6">
+      <div class="w-16 h-16 bg-dora-blue/20 rounded-full flex items-center justify-center mx-auto mb-3">
+        <span class="text-3xl">🤖</span>
+      </div>
+      <h2 class="font-heading text-2xl text-white">Member Login</h2>
+      <p class="text-gray-400 text-sm mt-1">Enter your credentials to access the archive</p>
+    </div>
+    <div id="login-error" class="hidden mb-4 px-4 py-2 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-sm text-center"></div>
+    <div class="space-y-4">
+      <div>
+        <label class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1 block">User ID</label>
+        <input id="login-userid" type="text" placeholder="Enter your User ID" class="w-full bg-dora-dark border border-dora-blue/20 rounded-xl px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-dora-blue transition text-sm">
+      </div>
+      <div>
+        <label class="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-1 block">Password</label>
+        <input id="login-password" type="password" placeholder="Enter your password" class="w-full bg-dora-dark border border-dora-blue/20 rounded-xl px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-dora-blue transition text-sm" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button onclick="doLogin()" class="w-full bg-dora-blue hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all duration-200 text-sm">
+        🚀 Login
+      </button>
+      <button onclick="closeLoginModal()" class="w-full text-gray-500 hover:text-gray-300 text-sm py-2 transition">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADMIN PANEL (bottom-left, opacity 20) ===== -->
+<div id="admin-trigger" onclick="openAdminPanel()" title="Admin Panel" style="position:fixed;bottom:20px;left:20px;z-index:900;opacity:0.20;cursor:pointer;transition:opacity 0.3s;" onmouseenter="this.style.opacity='0.85'" onmouseleave="this.style.opacity='0.20'">
+  <div style="background:#0F2340;border:1px solid #2BA4E0;border-radius:12px;padding:8px 14px;display:flex;align-items:center;gap:8px;">
+    <span style="font-size:18px;">⚙️</span>
+    <span style="color:#2BA4E0;font-size:12px;font-weight:700;font-family:Nunito,sans-serif;">Admin</span>
+  </div>
+</div>
+
+<!-- Admin Auth Modal -->
+<div id="admin-auth-modal" class="fixed inset-0 z-[1000] flex items-center justify-center hidden">
+  <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeAdminAuth()"></div>
+  <div class="relative bg-dora-navy border border-yellow-500/30 rounded-2xl p-8 w-full max-w-sm mx-4 shadow-2xl">
+    <div class="text-center mb-6">
+      <span class="text-4xl">🔐</span>
+      <h2 class="font-heading text-xl text-yellow-400 mt-2">Admin Access</h2>
+    </div>
+    <div id="admin-auth-error" class="hidden mb-3 px-3 py-2 bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 text-xs text-center"></div>
+    <input id="admin-pass-input" type="password" placeholder="Admin password" class="w-full bg-dora-dark border border-yellow-500/20 rounded-xl px-4 py-3 text-white placeholder-gray-600 outline-none focus:border-yellow-400 transition text-sm mb-4" onkeydown="if(event.key==='Enter')verifyAdminPass()">
+    <button onclick="verifyAdminPass()" class="w-full bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-xl transition text-sm">Enter Admin Panel</button>
+  </div>
+</div>
+
+<!-- Admin Panel Modal -->
+<div id="admin-panel-modal" class="fixed inset-0 z-[1001] flex items-center justify-center hidden">
+  <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeAdminPanel()"></div>
+  <div class="relative bg-dora-navy border border-yellow-500/30 rounded-2xl w-full max-w-2xl mx-4 shadow-2xl overflow-hidden" style="max-height:90vh;overflow-y:auto;">
+    <div class="sticky top-0 bg-dora-navy border-b border-yellow-500/20 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">⚙️</span>
+        <h2 class="font-heading text-xl text-yellow-400">Admin Panel</h2>
+      </div>
+      <button onclick="closeAdminPanel()" class="text-gray-400 hover:text-white text-xl">✕</button>
+    </div>
+    <div class="p-6">
+      <h3 class="font-heading text-white mb-4 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-yellow-400"></i> User Accounts (20 slots)</h3>
+      <div class="text-xs text-gray-400 mb-4">Give these credentials to members. They use these to login.</div>
+      <div id="user-list-container" class="space-y-2"></div>
+      <div class="mt-6 pt-4 border-t border-gray-700">
+        <h3 class="font-heading text-white mb-3 flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-green-400"></i> Active Sessions</h3>
+        <div id="active-sessions" class="text-sm text-gray-400"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== VIDEO LOCK OVERLAY (shown when not logged in) ===== -->
+<div id="video-lock-overlay" class="fixed inset-0 z-[500] hidden flex-col items-center justify-center" style="background:rgba(10,22,40,0.97);">
+  <div class="text-center px-6">
+    <div class="text-7xl mb-6">🔒</div>
+    <h2 class="font-heading text-3xl text-white mb-3">Members Only</h2>
+    <p class="text-gray-400 mb-6">You need to login to watch episodes.<br>Contact the admin to get your access credentials.</p>
+    <button onclick="closeLoginOverlay()" class="px-6 py-3 bg-dora-blue hover:bg-blue-500 text-white font-bold rounded-xl transition mr-3">
+      Login Now
+    </button>
+    <button onclick="document.getElementById('video-lock-overlay').classList.add('hidden')" class="px-6 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-xl transition">
+      Browse Only
+    </button>
+  </div>
+</div>
+
+<script>
+// ===== USER DATABASE (20 accounts) =====
+const USER_DB = [
+  { id: 'seruza', pass: 'watch@001' },
+  { id: 'nerf', pass: 'watch@002' },
+  { id: 'mambo', pass: 'watch@003' },
+  { id: 'miku', pass: 'watch@004' },
+  { id: 'dora', pass: 'watch@005' },
+  { id: 'maika', pass: 'watch@006' },
+  { id: 'caligo', pass: 'caligo' },
+  { id: 'shin', pass: 'watch@008' },
+  { id: 'makenki', pass: 'watch@009' },
+  { id: 'alpha', pass: 'watch@010' },
+  { id: 'oren', pass: 'watch@011' },
+  { id: 'rafael', pass: 'watch@012' },
+  { id: 'snow', pass: 'watch@013' },
+  { id: 'ariasu', pass: 'watch@014' },
+  { id: 'yuri', pass: 'watch@015' },
+  { id: 'yuki', pass: 'watch@016' },
+  { id: 'white', pass: 'watch@017' },
+  { id: 'wood', pass: 'watch@018' },
+  { id: 'toka', pass: 'watch@019' },
+  { id: 'marin', pass: 'watch@020' },
+];
+
+const ADMIN_PASS = '789delac';
+
+// ===== SESSION STATE =====
+let currentUser = null;
+
+function initAuth() {
+  const saved = sessionStorage.getItem('doraemon_user');
+  if (saved) {
+    currentUser = saved;
+    updateNavForUser(saved);
+  } else {
+    document.getElementById('login-btn').classList.remove('hidden');
+  }
+}
+
+function openLoginModal() {
+  document.getElementById('login-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('login-userid').focus(), 100);
+}
+
+function closeLoginModal() {
+  document.getElementById('login-modal').classList.add('hidden');
+  document.getElementById('login-error').classList.add('hidden');
+  document.getElementById('login-userid').value = '';
+  document.getElementById('login-password').value = '';
+}
+
+function closeLoginOverlay() {
+  document.getElementById('video-lock-overlay').classList.add('hidden');
+  openLoginModal();
+}
+
+function doLogin() {
+  const uid = document.getElementById('login-userid').value.trim();
+  const pass = document.getElementById('login-password').value;
+  const match = USER_DB.find(u => u.id === uid && u.pass === pass);
+  const errEl = document.getElementById('login-error');
+  if (!uid || !pass) {
+    errEl.textContent = 'Please enter both User ID and Password.';
+    errEl.classList.remove('hidden'); return;
+  }
+  if (!match) {
+    errEl.textContent = 'Invalid User ID or Password. Contact admin.';
+    errEl.classList.remove('hidden'); return;
+  }
+  currentUser = uid;
+  sessionStorage.setItem('doraemon_user', uid);
+  updateNavForUser(uid);
+  closeLoginModal();
+  document.getElementById('video-lock-overlay').classList.add('hidden');
+  showToast(`✅ Welcome, ${uid}! Enjoy the archive.`);
+}
+
+function logoutUser() {
+  currentUser = null;
+  sessionStorage.removeItem('doraemon_user');
+  document.getElementById('user-badge').classList.add('hidden');
+  document.getElementById('user-badge').classList.remove('flex');
+  document.getElementById('login-btn').classList.remove('hidden');
+  showToast('👋 Logged out successfully.');
+}
+
+function updateNavForUser(uid) {
+  document.getElementById('login-btn').classList.add('hidden');
+  const badge = document.getElementById('user-badge');
+  badge.classList.remove('hidden');
+  badge.classList.add('flex');
+  document.getElementById('user-badge-name').textContent = uid;
+}
+
+// ===== ADMIN PANEL =====
+function openAdminPanel() {
+  document.getElementById('admin-auth-modal').classList.remove('hidden');
+  setTimeout(() => document.getElementById('admin-pass-input').focus(), 100);
+}
+
+function closeAdminAuth() {
+  document.getElementById('admin-auth-modal').classList.add('hidden');
+  document.getElementById('admin-pass-input').value = '';
+  document.getElementById('admin-auth-error').classList.add('hidden');
+}
+
+function verifyAdminPass() {
+  const p = document.getElementById('admin-pass-input').value;
+  if (p === ADMIN_PASS) {
+    closeAdminAuth();
+    showAdminPanel();
+  } else {
+    const e = document.getElementById('admin-auth-error');
+    e.textContent = 'Wrong password!';
+    e.classList.remove('hidden');
+    document.getElementById('admin-pass-input').value = '';
+  }
+}
+
+function showAdminPanel() {
+  // Render user list
+  const container = document.getElementById('user-list-container');
+  container.innerHTML = USER_DB.map((u, i) => `
+    <div class="flex items-center justify-between bg-dora-dark/60 border border-gray-700/50 rounded-xl px-4 py-3">
+      <div class="flex items-center gap-3">
+        <span class="w-6 h-6 bg-dora-blue/20 rounded-full flex items-center justify-center text-xs text-dora-blue font-bold">${i+1}</span>
+        <div>
+          <div class="text-white text-sm font-bold">${u.id}</div>
+          <div class="text-gray-500 text-xs">Pass: <span class="text-yellow-400 font-mono">${u.pass}</span></div>
+        </div>
+      </div>
+      <span class="text-xs px-2 py-1 rounded-lg ${currentUser === u.id ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-700/50 text-gray-500'}">
+        ${currentUser === u.id ? '🟢 Online' : '⚫ Offline'}
+      </span>
+    </div>
+  `).join('');
+  // Active sessions
+  const activeEl = document.getElementById('active-sessions');
+  if (currentUser) {
+    activeEl.innerHTML = `<span class="text-green-400">● ${currentUser}</span> is currently logged in`;
+  } else {
+    activeEl.innerHTML = '<span class="text-gray-600">No active sessions</span>';
+  }
+  document.getElementById('admin-panel-modal').classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeAdminPanel() {
+  document.getElementById('admin-panel-modal').classList.add('hidden');
+}
+
+// ===== INTERCEPT VIDEO PLAY (require login) =====
+// Patch the openVideo function to require login
+const _origPlayVideo = typeof openVideo !== 'undefined' ? openVideo : null;
+window.requireLoginToWatch = function(driveId) {
+  if (!currentUser) {
+    document.getElementById('video-lock-overlay').classList.remove('hidden');
+    return false;
+  }
+  return true;
+};
+
+// ===== TOAST NOTIFICATION =====
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#0F2340;border:1px solid #2BA4E0;color:white;padding:12px 24px;border-radius:16px;font-size:14px;font-family:Nunito,sans-serif;font-weight:700;z-index:9999;white-space:nowrap;box-shadow:0 8px 30px rgba(43,164,224,0.3);';
+  document.body.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity 0.5s'; setTimeout(() => t.remove(), 500); }, 3000);
+}
+
+// Init on load
+document.addEventListener('DOMContentLoaded', initAuth);
+initAuth();
+</script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9efa838ea4c77c42',t:'MTc3Njc1NDg0OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
