@@ -1021,14 +1021,29 @@ const expandedSeasons = new Set(['S1']); // S1 open by default
 
 function openVideoModal(driveId, title, ep, color) {
   if (window.requireLoginToWatch && !window.requireLoginToWatch(driveId)) return;
-  // MKV files don't play properly in iframes — open directly in Google Drive
-  window.open('https://drive.google.com/file/d/' + driveId + '/view', '_blank');
+  _currentDriveId = driveId;
+  const modal = document.getElementById('video-modal');
+  const iframe = document.getElementById('video-modal-iframe');
+  const titleEl = document.getElementById('video-modal-title');
+  const epEl = document.getElementById('video-modal-ep');
+  const badge = document.getElementById('video-modal-badge');
+  // Set content
+  titleEl.textContent = title;
+  epEl.textContent = ep;
+  badge.textContent = ep;
+  badge.style.background = color + 'bb';
+  // Set iframe src with proper URL
+  const src = 'https://drive.google.com/file/d/' + driveId + '/preview?rm=minimal';
+  iframe.src = src;
+  // Show modal
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
 
 function closeVideoModal() {
   const modal = document.getElementById('video-modal');
   const iframe = document.getElementById('video-modal-iframe');
-  if (iframe) iframe.src = '';
+  iframe.src = ''; // stop video/audio
   modal.classList.add('hidden');
   document.body.style.overflow = '';
 }
@@ -1048,9 +1063,12 @@ function makeVideoCard(v, i) {
       </button>
       <div class="p-4">
         <h3 class="font-bold text-sm text-white leading-snug line-clamp-2 group-hover:text-dora-blue transition">${v.title}</h3>
-        <p class="text-[11px] text-gray-500 mt-2 flex items-center gap-2">
-          <i data-lucide="clock" class="w-3 h-3"></i> 22 min
-        </p>
+        <div class="mt-2 flex items-center justify-between">
+          <p class="text-[11px] text-gray-500 flex items-center gap-2">
+            <i data-lucide="clock" class="w-3 h-3"></i> 22 min
+          </p>
+
+        </div>
       </div>
     </div>`;
 }
@@ -1282,12 +1300,18 @@ lucide.createIcons();
         allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
         sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
       ></iframe>
+      <!-- Transparent overlay to block Drive's popout button click -->
+      <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:transparent;z-index:10;"></div>
     </div>
+
   </div>
 </div>
 
 <script>
 let _currentDriveId = '';
+function openInDrive() {
+  if (_currentDriveId) window.open('https://drive.google.com/file/d/' + _currentDriveId + '/view', '_blank');
+}
 </script>
 
 <!-- ===== LOGIN MODAL ===== -->
@@ -1356,6 +1380,18 @@ let _currentDriveId = '';
       <h3 class="font-heading text-white mb-4 flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-yellow-400"></i> User Accounts (20 slots)</h3>
       <div class="text-xs text-gray-400 mb-4">Give these credentials to members. They use these to login.</div>
       <div id="user-list-container" class="space-y-2"></div>
+      <div class="mt-4">
+        <button onclick="togglePassRef()" class="text-xs px-3 py-1.5 bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 rounded-lg transition font-semibold">🔑 Password Reference দেখুন</button>
+        <div id="pass-ref" class="hidden mt-3 p-3 bg-black/40 rounded-xl border border-yellow-500/20 text-xs font-mono text-yellow-300 space-y-1 max-h-40 overflow-y-auto">
+          <div>seruza → watch@001</div><div>nerf → watch@002</div><div>mambo → watch@003</div>
+          <div>miku → watch@004</div><div>dora → watch@005</div><div>maika → watch@006</div>
+          <div>caligo → caligo</div><div>shin → watch@008</div><div>makenki → watch@009</div>
+          <div>alpha → watch@010</div><div>oren → watch@011</div><div>rafael → watch@012</div>
+          <div>snow → watch@013</div><div>ariasu → watch@014</div><div>yuri → watch@015</div>
+          <div>yuki → watch@016</div><div>white → watch@017</div><div>wood → watch@018</div>
+          <div>toka → watch@019</div><div>marin → watch@020</div>
+        </div>
+      </div>
       <div class="mt-6 pt-4 border-t border-gray-700">
         <h3 class="font-heading text-white mb-3 flex items-center gap-2"><i data-lucide="activity" class="w-4 h-4 text-green-400"></i> Active Sessions</h3>
         <div id="active-sessions" class="text-sm text-gray-400"></div>
@@ -1380,37 +1416,45 @@ let _currentDriveId = '';
 </div>
 
 <script>
-// ===== USER DATABASE (20 accounts) =====
+// ===== USER DATABASE (20 accounts) — passwords stored as SHA-256 hashes =====
 const USER_DB = [
-  { id: 'seruza', pass: 'watch@001' },
-  { id: 'nerf', pass: 'watch@002' },
-  { id: 'mambo', pass: 'watch@003' },
-  { id: 'miku', pass: 'watch@004' },
-  { id: 'dora', pass: 'watch@005' },
-  { id: 'maika', pass: 'watch@006' },
-  { id: 'caligo', pass: 'caligo' },
-  { id: 'shin', pass: 'watch@008' },
-  { id: 'makenki', pass: 'watch@009' },
-  { id: 'alpha', pass: 'watch@010' },
-  { id: 'oren', pass: 'watch@011' },
-  { id: 'rafael', pass: 'watch@012' },
-  { id: 'snow', pass: 'watch@013' },
-  { id: 'ariasu', pass: 'watch@014' },
-  { id: 'yuri', pass: 'watch@015' },
-  { id: 'yuki', pass: 'watch@016' },
-  { id: 'white', pass: 'watch@017' },
-  { id: 'wood', pass: 'watch@018' },
-  { id: 'toka', pass: 'watch@019' },
-  { id: 'marin', pass: 'watch@020' },
+  { id: 'seruza', hash: '693d26e14bd0c2f95857b40c377d0828657527842437eb79758a4dfc0a4a97d3' },
+  { id: 'nerf', hash: 'cec351f94f091d8adf6061afd588d30707e5034317fa79749d114aeddf8158ca' },
+  { id: 'mambo', hash: 'e8d0e33d816e5da29ade99d011fef1367155380a4e0c7e3cda6f0efdfc5c5bd1' },
+  { id: 'miku', hash: 'cad244c5f860ec36681e851487f43ff6371fc71ae602e6b6694c7e3c8d1f6616' },
+  { id: 'dora', hash: '92fa5860cb94ab103abf7e720ed8b851604bb14e7de1b81582448aceaa98491d' },
+  { id: 'maika', hash: 'f4531da4b02446a759a82632558e857c335d331956fc3adaee20432ec198577c' },
+  { id: 'caligo', hash: '260a183fb754c84c165e87a7439f224f5e59499bc5daff492c2f3f0563d7156f' },
+  { id: 'shin', hash: '18bcd210bb224274ad3886770f137fe9c1d5296d5002ccea73964ec671af8d52' },
+  { id: 'makenki', hash: 'fb57bc078b728622435e9114f1da442939f76025c02497cedc8d47f51b5e8308' },
+  { id: 'alpha', hash: 'f7319f7d46970ec49aa52a670ed97ec233507bdc0eeec5b67aadb9b587c11b6c' },
+  { id: 'oren', hash: 'a84ec72fd90e813a8e4cf5e62a64aa5913e0148205e5c191909d97e3bd907aff' },
+  { id: 'rafael', hash: '6f7eda8d7cb4a77beeda6e4f0d8fe7a1df5b1e6056faa1407f0a0dadcaccfe93' },
+  { id: 'snow', hash: 'f5d5f008b4a47e35f47f56412bbb9d61099439d5b5b0a83e283c69242068261d' },
+  { id: 'ariasu', hash: '5726c12c2cf1557bcdbe94baa12387fa19367dc102b85387068a5594f35685be' },
+  { id: 'yuri', hash: '552ec96681d7a6b2f95b5c59c5fad135c5ce71622a4c97dc1b413e6cfde229e5' },
+  { id: 'yuki', hash: '7929e963ae3da945c71f1c921d0a88b89e1b612422eab4f3e6aeafb2cfe136b3' },
+  { id: 'white', hash: 'e11b1d15e69eb73f5a92ab3afb002f4ea9a34f897366f990a4d81be7dbe41666' },
+  { id: 'wood', hash: '96e1cb63af4c27e2083e34814e0560339bcc0c5882525e186cb4895f8a381577' },
+  { id: 'toka', hash: '383266cf546a970d112cc0a60d2406f722f0db210103138a341bac925dbad842' },
+  { id: 'marin', hash: 'd047ecd59f917d0522262bbb0c2da2d3fab56bb3df9aba97d42b717b84ab5131' },
 ];
 
-const ADMIN_PASS = '789delac';
+const ADMIN_HASH = '72b492fc2f369b50e48070a821c74e480af28202a8553f4c8e22f07bd7a691a2';
+
+// SHA-256 hash function using Web Crypto API
+async function sha256(message) {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 // ===== SESSION STATE =====
 let currentUser = null;
 
 function initAuth() {
-  const saved = sessionStorage.getItem('doraemon_user');
+  const saved = localStorage.getItem('doraemon_user');
   if (saved) {
     currentUser = saved;
     updateNavForUser(saved);
@@ -1436,21 +1480,22 @@ function closeLoginOverlay() {
   openLoginModal();
 }
 
-function doLogin() {
+async function doLogin() {
   const uid = document.getElementById('login-userid').value.trim();
   const pass = document.getElementById('login-password').value;
-  const match = USER_DB.find(u => u.id === uid && u.pass === pass);
   const errEl = document.getElementById('login-error');
   if (!uid || !pass) {
     errEl.textContent = 'Please enter both User ID and Password.';
     errEl.classList.remove('hidden'); return;
   }
+  const inputHash = await sha256(pass);
+  const match = USER_DB.find(u => u.id === uid && u.hash === inputHash);
   if (!match) {
     errEl.textContent = 'Invalid User ID or Password. Contact admin.';
     errEl.classList.remove('hidden'); return;
   }
   currentUser = uid;
-  sessionStorage.setItem('doraemon_user', uid);
+  localStorage.setItem('doraemon_user', uid);
   updateNavForUser(uid);
   closeLoginModal();
   document.getElementById('video-lock-overlay').classList.add('hidden');
@@ -1459,7 +1504,7 @@ function doLogin() {
 
 function logoutUser() {
   currentUser = null;
-  sessionStorage.removeItem('doraemon_user');
+  localStorage.removeItem('doraemon_user');
   document.getElementById('user-badge').classList.add('hidden');
   document.getElementById('user-badge').classList.remove('flex');
   document.getElementById('login-btn').classList.remove('hidden');
@@ -1486,9 +1531,10 @@ function closeAdminAuth() {
   document.getElementById('admin-auth-error').classList.add('hidden');
 }
 
-function verifyAdminPass() {
+async function verifyAdminPass() {
   const p = document.getElementById('admin-pass-input').value;
-  if (p === ADMIN_PASS) {
+  const h = await sha256(p);
+  if (h === ADMIN_HASH) {
     closeAdminAuth();
     showAdminPanel();
   } else {
@@ -1508,7 +1554,7 @@ function showAdminPanel() {
         <span class="w-6 h-6 bg-dora-blue/20 rounded-full flex items-center justify-center text-xs text-dora-blue font-bold">${i+1}</span>
         <div>
           <div class="text-white text-sm font-bold">${u.id}</div>
-          <div class="text-gray-500 text-xs">Pass: <span class="text-yellow-400 font-mono">${u.pass}</span></div>
+          <div class="text-gray-500 text-xs">Pass: <span class="text-yellow-400 font-mono">••••••••</span></div>
         </div>
       </div>
       <span class="text-xs px-2 py-1 rounded-lg ${currentUser === u.id ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-700/50 text-gray-500'}">
@@ -1525,6 +1571,11 @@ function showAdminPanel() {
   }
   document.getElementById('admin-panel-modal').classList.remove('hidden');
   lucide.createIcons();
+}
+
+function togglePassRef() {
+  const el = document.getElementById('pass-ref');
+  el.classList.toggle('hidden');
 }
 
 function closeAdminPanel() {
