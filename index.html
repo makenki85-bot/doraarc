@@ -1019,32 +1019,53 @@ const SEASONS = [
 // Track which seasons are expanded
 const expandedSeasons = new Set(['S1']); // S1 open by default
 
+let _currentEp = { driveId:'', title:'', ep:'', color:'' };
+
 function openVideoModal(driveId, title, ep, color) {
   if (window.requireLoginToWatch && !window.requireLoginToWatch(driveId)) return;
   _currentDriveId = driveId;
-  const modal = document.getElementById('video-modal');
-  const iframe = document.getElementById('video-modal-iframe');
-  const titleEl = document.getElementById('video-modal-title');
-  const epEl = document.getElementById('video-modal-ep');
-  const badge = document.getElementById('video-modal-badge');
-  // Set content
-  titleEl.textContent = title;
-  epEl.textContent = ep;
+  _currentEp = { driveId, title, ep, color };
+
+  const directUrl = 'https://drive.google.com/uc?id=' + driveId + '&export=download';
+
+  // VLC
+  const vlcUrl = 'intent://' + directUrl.replace('https://', '') +
+    '#Intent;package=org.videolan.vlc;type=video/mp4;end';
+
+  document.getElementById('sheet-title').textContent = title;
+  const badge = document.getElementById('sheet-badge');
   badge.textContent = ep;
-  badge.style.background = color + 'bb';
-  // Set iframe src with proper URL
-  const src = 'https://drive.google.com/file/d/' + driveId + '/preview?rm=minimal';
-  iframe.src = src;
-  // Show modal
-  modal.classList.remove('hidden');
+  badge.style.background = color + 'cc';
+
+  document.getElementById('btn-vlc').onclick = () => { window.location.href = vlcUrl; };
+  document.getElementById('btn-browser').onclick = () => {
+    closeVideoModal();
+    const e = _currentEp;
+    openIframeModal(e.driveId, e.title, e.ep, e.color);
+  };
+
+  document.getElementById('video-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
 
 function closeVideoModal() {
-  const modal = document.getElementById('video-modal');
-  const iframe = document.getElementById('video-modal-iframe');
-  iframe.src = ''; // stop video/audio
-  modal.classList.add('hidden');
+  document.getElementById('video-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function openIframeModal(driveId, title, ep, color) {
+  const modal = document.getElementById('iframe-modal');
+  document.getElementById('iframe-modal-badge').textContent = ep;
+  document.getElementById('iframe-modal-badge').style.background = color + 'bb';
+  document.getElementById('iframe-modal-title').textContent = title;
+  document.getElementById('iframe-modal-frame').src = 'https://drive.google.com/file/d/' + driveId + '/preview?rm=minimal';
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeIframeModal() {
+  document.getElementById('iframe-modal').classList.add('hidden');
+  document.getElementById('iframe-modal-frame').src = '';
   document.body.style.overflow = '';
 }
 
@@ -1211,6 +1232,7 @@ function filterVideos() {
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     if (!document.getElementById('video-modal').classList.contains('hidden')) closeVideoModal();
+    if (!document.getElementById('iframe-modal').classList.contains('hidden')) closeIframeModal();
   }
 });
 
@@ -1276,34 +1298,44 @@ window.elementSdk.init({
 
 lucide.createIcons();
 </script>
-<!-- ===== VIDEO PLAYER MODAL ===== -->
-<div id="video-modal" class="fixed inset-0 z-[990] hidden">
-  <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="closeVideoModal()"></div>
-  <div class="relative z-10 w-full max-w-5xl mx-auto flex flex-col" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:calc(100% - 2rem);max-height:95vh;">
-    <div class="flex items-center justify-between px-4 py-3 bg-dora-navy/95 border-b border-dora-blue/20 rounded-t-2xl">
-      <div class="flex items-center gap-3 min-w-0">
-        <span id="video-modal-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white shrink-0"></span>
-        <h3 id="video-modal-title" class="font-bold text-sm text-white truncate"></h3>
-        <span id="video-modal-ep" class="hidden"></span>
-      </div>
-      <div class="flex items-center gap-2 shrink-0 ml-3">
-        <button onclick="closeVideoModal()" class="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-400 transition font-bold text-lg leading-none">✕</button>
-      </div>
+<!-- ===== VIDEO PLAYER BOTTOM SHEET ===== -->
+<div id="video-modal" class="fixed inset-0 z-[990] hidden flex items-end justify-center">
+  <div class="absolute inset-0 bg-black/70 backdrop-blur-sm" onclick="closeVideoModal()"></div>
+  <div class="relative z-10 w-full max-w-lg bg-dora-navy border border-dora-blue/20 rounded-t-3xl p-6 pb-10"
+       style="animation: slideUp .3s ease-out both;">
+    <!-- Handle bar -->
+    <div class="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5"></div>
+    <!-- Episode info -->
+    <div class="flex items-center gap-3 mb-6">
+      <span id="sheet-badge" class="text-xs font-bold px-3 py-1.5 rounded-lg text-white shrink-0"></span>
+      <h3 id="sheet-title" class="font-bold text-sm text-white truncate"></h3>
     </div>
-    <div class="relative bg-black" style="padding-top:56.25%">
-      <iframe
-        id="video-modal-iframe"
-        src=""
-        class="absolute inset-0 w-full h-full"
-        frameborder="0"
-        allowfullscreen="true"
-        allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
-        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
-      ></iframe>
-      <!-- Transparent overlay to block Drive's popout button click -->
-      <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:transparent;z-index:10;"></div>
+    <!-- Hint text -->
+    <p class="text-xs text-gray-500 mb-4 text-center">কোন app এ দেখতে চাও?</p>
+    <!-- App buttons -->
+    <div class="flex flex-col gap-3">
+      <button id="btn-vlc"
+        class="flex items-center gap-4 w-full px-5 py-4 rounded-2xl bg-dora-blue/10 border border-dora-blue/20 hover:bg-dora-blue/20 active:scale-95 transition-all">
+        <span class="text-2xl">🎥</span>
+        <div class="text-left">
+          <div class="text-white font-bold text-sm">VLC তে দেখো</div>
+          <div class="text-gray-500 text-xs">VLC media player</div>
+        </div>
+      </button>
+      <button id="btn-browser"
+        class="flex items-center gap-4 w-full px-5 py-4 rounded-2xl bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 transition-all">
+        <span class="text-2xl">🌐</span>
+        <div class="text-left">
+          <div class="text-white font-bold text-sm">Browser এ দেখো</div>
+          <div class="text-gray-500 text-xs">Google Drive player</div>
+        </div>
+      </button>
     </div>
-
+    <!-- Close -->
+    <button onclick="closeVideoModal()"
+      class="mt-5 w-full py-3 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-sm hover:bg-red-500/20 active:scale-95 transition-all">
+      বাতিল করো
+    </button>
   </div>
 </div>
 
@@ -1313,6 +1345,29 @@ function openInDrive() {
   if (_currentDriveId) window.open('https://drive.google.com/file/d/' + _currentDriveId + '/view', '_blank');
 }
 </script>
+
+<!-- ===== IFRAME PLAYER MODAL ===== -->
+<div id="iframe-modal" class="fixed inset-0 z-[995] hidden">
+  <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="closeIframeModal()"></div>
+  <div class="relative z-10" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:calc(100% - 2rem);max-width:900px;">
+    <div class="flex items-center justify-between px-4 py-3 bg-dora-navy/95 border-b border-dora-blue/20 rounded-t-2xl">
+      <div class="flex items-center gap-3 min-w-0">
+        <span id="iframe-modal-badge" class="text-[11px] font-bold px-2.5 py-1 rounded-lg text-white shrink-0"></span>
+        <h3 id="iframe-modal-title" class="font-bold text-sm text-white truncate"></h3>
+      </div>
+      <button onclick="closeIframeModal()" class="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-400 transition font-bold text-lg leading-none ml-3 shrink-0">✕</button>
+    </div>
+    <div class="relative bg-black" style="padding-top:56.25%">
+      <iframe id="iframe-modal-frame" src="" class="absolute inset-0 w-full h-full" frameborder="0"
+        allowfullscreen="true"
+        allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
+        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation">
+      </iframe>
+      <!-- Block Drive popout button (top-right area) -->
+      <div style="position:absolute;top:0;right:0;width:15%;height:20%;min-width:80px;min-height:60px;background:transparent;z-index:10;cursor:default;" onclick="return false;"></div>
+    </div>
+  </div>
+</div>
 
 <!-- ===== LOGIN MODAL ===== -->
 <div id="login-modal" class="fixed inset-0 z-[999] flex items-center justify-center hidden">
