@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Doraemon Video Archive</title>
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
-  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
-  <script src="/_sdk/element_sdk.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&amp;family=Fredoka+One&amp;display=swap" rel="stylesheet">
   <script>
 tailwind.config = {
@@ -49,9 +50,22 @@ html { scroll-behavior: smooth; }
 ::-webkit-scrollbar { width:8px; }
 ::-webkit-scrollbar-track { background:#0A1628; }
 ::-webkit-scrollbar-thumb { background:#2BA4E0; border-radius:4px; }
+
+/* Mobile performance: keep effects light and avoid rendering off-screen work */
+.season-block { content-visibility: auto; contain-intrinsic-size: 420px; }
+@media (max-width: 768px) {
+  .float-anim, .door-glow, .bell-swing, .slide-up { animation: none !important; }
+  .card-hover, .card-hover:hover { transform: none !important; box-shadow: none !important; }
+  #hero { padding-top: 3rem !important; padding-bottom: 3rem !important; }
+  .backdrop-blur-xl, .backdrop-blur-md, .backdrop-blur-sm, .backdrop-blur { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+  #admin-trigger { display:none !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+
 </style>
   <style>body { box-sizing: border-box; }</style>
-  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
  </head>
  <body class="h-full bg-dora-dark font-body text-dora-white overflow-auto"><!-- Navigation - Anywhere Door Style -->
   <nav id="main-nav" class="sticky top-0 z-50 backdrop-blur-xl bg-dora-dark/80 border-b border-dora-blue/20">
@@ -1019,9 +1033,29 @@ const SEASONS = [
 // Track which seasons are expanded
 const expandedSeasons = new Set(['S1']); // S1 open by default
 
+function isMobileDevice() {
+  return window.matchMedia('(max-width: 768px)').matches || /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
+function driveViewUrl(driveId) {
+  return 'https://drive.google.com/file/d/' + driveId + '/view';
+}
+
+function drivePreviewUrl(driveId) {
+  return 'https://drive.google.com/file/d/' + driveId + '/preview?rm=minimal';
+}
+
 function openVideoModal(driveId, title, ep, color) {
   if (window.requireLoginToWatch && !window.requireLoginToWatch(driveId)) return;
   _currentDriveId = driveId;
+
+  // Google Drive iframe player is unreliable/heavy on many mobile browsers.
+  // On mobile, open the native Drive player directly from the tap for smoother playback.
+  if (isMobileDevice()) {
+    window.open(driveViewUrl(driveId), '_blank', 'noopener');
+    return;
+  }
+
   const modal = document.getElementById('video-modal');
   const iframe = document.getElementById('video-modal-iframe');
   const titleEl = document.getElementById('video-modal-title');
@@ -1032,10 +1066,7 @@ function openVideoModal(driveId, title, ep, color) {
   epEl.textContent = ep;
   badge.textContent = ep;
   badge.style.background = color + 'bb';
-  // Set iframe src with proper URL
-  const src = 'https://drive.google.com/file/d/' + driveId + '/preview?rm=minimal';
-  iframe.src = src;
-  // Show modal
+  iframe.src = drivePreviewUrl(driveId);
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -1073,20 +1104,38 @@ function makeVideoCard(v, i) {
     </div>`;
 }
 
+// Cache filtered episodes by season and lazily render only expanded seasons.
+let _seasonEpisodeCache = new Map();
+
+function renderSeasonGrid(key) {
+  const grid = document.getElementById('season-grid-' + key);
+  if (!grid || grid.dataset.rendered === 'true') return;
+  const eps = _seasonEpisodeCache.get(key) || [];
+  grid.innerHTML = `
+    <div class="px-4 pb-5 pt-1">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        ${eps.map((v,i) => makeVideoCard(v,i)).join('')}
+      </div>
+    </div>`;
+  grid.dataset.rendered = 'true';
+  if (window.lucide) lucide.createIcons();
+}
+
 function renderSeasonSections(episodeList) {
   const container = document.getElementById('season-sections');
   const noRes = document.getElementById('no-results');
   let totalShown = 0;
   let html = '';
+  _seasonEpisodeCache = new Map();
 
   SEASONS.forEach(s => {
     const eps = episodeList.filter(s.match);
     if (!eps.length) return;
+    _seasonEpisodeCache.set(s.key, eps);
     totalShown += eps.length;
     const isOpen = expandedSeasons.has(s.key);
     html += `
-      <div class="mb-4 rounded-2xl overflow-hidden border border-white/5 bg-dora-navy/40" id="season-block-${s.key}">
-        <!-- Season Header -->
+      <div class="season-block mb-4 rounded-2xl overflow-hidden border border-white/5 bg-dora-navy/40" id="season-block-${s.key}">
         <button onclick="toggleSeason('${s.key}')"
           class="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors duration-200 group">
           <div class="flex items-center gap-3">
@@ -1107,14 +1156,7 @@ function renderSeasonSections(episodeList) {
             </span>
           </div>
         </button>
-        <!-- Episode Grid -->
-        <div id="season-grid-${s.key}" class="overflow-hidden transition-all duration-300" style="${isOpen?'':'display:none;'}">
-          <div class="px-4 pb-5 pt-1">
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              ${eps.map((v,i) => makeVideoCard(v,i)).join('')}
-            </div>
-          </div>
-        </div>
+        <div id="season-grid-${s.key}" data-rendered="false" class="overflow-hidden transition-all duration-300" style="${isOpen?'':'display:none;'}"></div>
       </div>`;
   });
 
@@ -1125,7 +1167,9 @@ function renderSeasonSections(episodeList) {
   } else {
     container.innerHTML = html;
     noRes.classList.add('hidden');
-    lucide.createIcons();
+    // Render only the already-open season(s); closed seasons stay lightweight.
+    expandedSeasons.forEach(renderSeasonGrid);
+    if (window.lucide) lucide.createIcons();
   }
 }
 
@@ -1136,6 +1180,7 @@ function toggleSeason(key) {
   if (grid.style.display === 'none') {
     grid.style.display = 'block';
     expandedSeasons.add(key);
+    renderSeasonGrid(key);
     if (chev) chev.style.transform = 'rotate(180deg)';
   } else {
     grid.style.display = 'none';
@@ -1149,7 +1194,7 @@ function expandAllSeasons() {
     expandedSeasons.add(s.key);
     const g = document.getElementById('season-grid-' + s.key);
     const c = document.getElementById('chevron-' + s.key);
-    if (g) { g.style.display = 'block'; }
+    if (g) { g.style.display = 'block'; renderSeasonGrid(s.key); }
     if (c) c.style.transform = 'rotate(180deg)';
   });
 }
@@ -1178,7 +1223,7 @@ function renderVideos(list) {
   }
   noRes.classList.add('hidden');
   flatGrid.innerHTML = list.map((v, i) => makeVideoCard(v, i)).join('');
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
 }
 
 function setCategory(tag) {
@@ -1252,6 +1297,7 @@ function applyConfig(config) {
   document.body.style.fontSize = c.font_size + 'px';
 }
 
+if (window.elementSdk) {
 window.elementSdk.init({
   defaultConfig,
   onConfigChange: async (config) => applyConfig(config),
@@ -1274,7 +1320,9 @@ window.elementSdk.init({
   ]),
 });
 
-lucide.createIcons();
+}
+
+if (window.lucide) lucide.createIcons();
 </script>
 <!-- ===== VIDEO PLAYER MODAL ===== -->
 <div id="video-modal" class="fixed inset-0 z-[990] hidden">
@@ -1287,6 +1335,7 @@ lucide.createIcons();
         <span id="video-modal-ep" class="hidden"></span>
       </div>
       <div class="flex items-center gap-2 shrink-0 ml-3">
+        <button onclick="openInDrive()" class="hidden sm:inline-flex px-3 py-2 rounded-xl bg-dora-blue/20 hover:bg-dora-blue/40 text-dora-blue transition font-bold text-xs">Open in Drive</button>
         <button onclick="closeVideoModal()" class="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/20 hover:bg-red-500/40 text-red-400 transition font-bold text-lg leading-none">✕</button>
       </div>
     </div>
@@ -1298,10 +1347,7 @@ lucide.createIcons();
         frameborder="0"
         allowfullscreen="true"
         allow="autoplay; fullscreen; encrypted-media; picture-in-picture; accelerometer; gyroscope"
-        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-presentation"
       ></iframe>
-      <!-- Transparent overlay to block Drive's popout button click -->
-      <div style="position:absolute;top:0;right:0;width:60px;height:60px;background:transparent;z-index:10;"></div>
     </div>
 
   </div>
@@ -1310,7 +1356,7 @@ lucide.createIcons();
 <script>
 let _currentDriveId = '';
 function openInDrive() {
-  if (_currentDriveId) window.open('https://drive.google.com/file/d/' + _currentDriveId + '/view', '_blank');
+  if (_currentDriveId) window.open(driveViewUrl(_currentDriveId), '_blank', 'noopener');
 }
 </script>
 
@@ -1570,7 +1616,7 @@ function showAdminPanel() {
     activeEl.innerHTML = '<span class="text-gray-600">No active sessions</span>';
   }
   document.getElementById('admin-panel-modal').classList.remove('hidden');
-  lucide.createIcons();
+  if (window.lucide) lucide.createIcons();
 }
 
 function togglePassRef() {
@@ -1606,5 +1652,5 @@ function showToast(msg) {
 document.addEventListener('DOMContentLoaded', initAuth);
 initAuth();
 </script>
- <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9efa838ea4c77c42',t:'MTc3Njc1NDg0OS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a3114cc858d985ab',t:'MTc4NzczMTE5Ng=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
